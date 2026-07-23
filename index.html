@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PNR CMO — Inventaire écologique</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g9:#0f2e1e;--g8:#143a26;--g7:#1c5238;--g6:#246b48;--g5:#2d8556;--g4:#3da06b;
+  --g3:#5cb884;--g2:#8fd0a8;--g1:#c5e9d3;--g0:#eaf6ef;
+  --n9:#121814;--n8:#262d28;--n7:#3a443d;--n6:#566059;--n5:#717c74;--n4:#919c93;--n3:#b8c2bb;--n2:#dde4df;--n1:#eef2ef;--n0:#f7faf8;
+  --w:#fff;--sh-sm:0 1px 2px rgba(15,46,30,.08);--sh:0 2px 8px rgba(15,46,30,.10);--sh-lg:0 8px 24px rgba(15,46,30,.14);
+  --r:6px;--r-lg:10px;
+  --ph:56px;--fh:34px;--lw:270px;--rw:400px;
+  --accent:#246b48;
+  --success:#2e7d32;--warning:#ef6c00;--error:#c62828;--info:#1565c0;
+}
+html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;color:var(--n9);background:var(--n1);-webkit-font-smoothing:antialiased}
+button{font-family:inherit}
+
+#hd{position:fixed;top:0;left:0;right:0;height:var(--ph);background:linear-gradient(135deg,var(--g9) 0%,var(--g8) 100%);display:flex;align-items:center;padding:0 18px;gap:14px;z-index:1000;box-shadow:0 2px 12px rgba(15,46,30,.18)}
+.logo{display:flex;align-items:center;gap:11px;min-width:210px}
+.logo-ic{width:40px;height:40px;background:linear-gradient(135deg,#1c5238,#0f2e1e);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--w);flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.22);letter-spacing:-.02em;border:1.5px solid var(--g3)}
+.logo-t .t1{font-size:13px;font-weight:700;color:var(--w);letter-spacing:-.01em;line-height:1.2}
+.logo-t .t2{font-size:10.5px;color:var(--g3);font-weight:500;margin-top:1px}
+#sb{flex:1;max-width:420px;position:relative}
+#sb input{width:100%;padding:8px 12px 8px 34px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:rgba(255,255,255,.08);color:var(--w);font-size:12.5px;outline:none;transition:all .18s}
+#sb input:focus{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.28);box-shadow:0 0 0 3px rgba(92,184,132,.18)}
+#sb input::placeholder{color:rgba(255,255,255,.5)}
+#sb .si{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.5);font-size:14px;pointer-events:none}
+#search-results{position:absolute;top:42px;left:0;right:0;background:var(--w);border-radius:var(--r-lg);box-shadow:var(--sh-lg);max-height:320px;overflow-y:auto;display:none;z-index:1100;scrollbar-width:thin}
+#search-results::-webkit-scrollbar{width:4px}#search-results::-webkit-scrollbar-thumb{background:var(--n3);border-radius:2px}
+.sr-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--n1);transition:background .12s}
+.sr-item:last-child{border:none}
+.sr-item:hover{background:var(--n0)}
+.sr-icon{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,var(--g5),var(--g3));display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;color:var(--w)}
+.sr-name{font-size:12.5px;font-weight:600;color:var(--n8);line-height:1.3}
+.sr-meta{font-size:10.5px;color:var(--n5);margin-top:1px}
+.sr-empty{padding:16px 14px;text-align:center;font-size:11.5px;color:var(--n5)}
+#nav{display:flex;align-items:center;gap:2px;margin-left:auto}
+.nb{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 12px;border-radius:6px;color:rgba(255,255,255,.7);cursor:pointer;font-size:10.5px;font-weight:500;border:none;background:transparent;transition:all .18s}
+.nb .ni{font-size:15px}
+.nb:hover{background:rgba(255,255,255,.08);color:var(--w)}
+.nb.on{background:rgba(92,184,132,.18);color:var(--g2)}
+
+#app{position:fixed;top:var(--ph);bottom:var(--fh);left:0;right:0;display:flex}
+
+#lp{width:var(--lw);height:100%;background:var(--w);display:flex;flex-direction:column;flex-shrink:0;box-shadow:2px 0 8px rgba(15,46,30,.06);z-index:10;overflow:hidden;transition:width .22s ease}
+#lp.coll{width:42px}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:linear-gradient(135deg,var(--g9),var(--g8));color:var(--w);font-size:12.5px;font-weight:600;flex-shrink:0;cursor:pointer;user-select:none}
+.ph button{background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:14px;padding:0;transition:transform .18s}
+.ph:hover button{color:var(--w)}
+.ps{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--n3) transparent}
+.ps::-webkit-scrollbar{width:4px}.ps::-webkit-scrollbar-thumb{background:var(--n3);border-radius:2px}
+#leg-sec{border-top:1px solid var(--n2);flex-shrink:0;background:var(--n0)}
+.lh{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;background:var(--n1);color:var(--n8);font-size:12px;font-weight:600;cursor:pointer;user-select:none;border-bottom:1px solid var(--n2)}
+.lh:hover{background:var(--n2)}
+.lb{padding:9px 11px;max-height:240px;overflow-y:auto;scrollbar-width:thin}
+.lb::-webkit-scrollbar{width:4px}.lb::-webkit-scrollbar-thumb{background:var(--n3)}
+.li{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;color:var(--n7)}
+.ls{width:20px;height:12px;border-radius:3px;flex-shrink:0;border:1px solid rgba(0,0,0,.06)}
+.lg{border-bottom:1px solid var(--n1)}.lg:last-child{border:none}
+.lg-h{font-size:10px;font-weight:700;color:var(--g7);text-transform:uppercase;letter-spacing:.06em;padding:8px 0 3px;margin-top:4px;border-top:1px solid var(--n2)}
+.lg-h:first-child{border-top:none;margin-top:0}
+.lgi{display:flex;align-items:center;gap:6px;cursor:pointer;transition:background .12s;border-radius:4px;padding:3px 4px}
+.lgi:hover{background:var(--n1)}
+.lgi.active{background:var(--g0)}
+.gh{display:flex;align-items:center;gap:6px;padding:7px 10px;cursor:pointer;user-select:none;font-weight:600;font-size:11.5px;color:var(--n8);transition:background .12s;border-radius:4px;margin:1px 4px}
+.gh:hover{background:var(--n0)}
+.gh .ar{font-size:9px;color:var(--n5);transition:transform .2s;flex-shrink:0;width:8px}
+.gh .ar.op{transform:rotate(90deg)}
+.gb{display:none}.gb.op{display:block}
+.li2{display:flex;align-items:center;gap:6px;padding:4px 10px;font-size:11px;color:var(--n7);transition:background .12s;border-radius:4px;margin:1px 4px}
+.li2:hover{background:var(--n0)}
+.li2 input[type=checkbox]{margin:0;accent-color:var(--g6);flex-shrink:0;cursor:pointer}
+.sw{width:14px;height:14px;border-radius:3px;flex-shrink:0;border:1px solid rgba(0,0,0,.12)}
+.ib{background:none;border:none;cursor:pointer;color:var(--n4);font-size:12px;padding:0;margin-left:auto;flex-shrink:0;transition:color .12s}
+.ib:hover{color:var(--g6)}
+
+#mc{flex:1;position:relative;overflow:hidden;background:var(--n1)}
+#map{width:100%;height:100%;background:#e8edea}
+#map.no-bg{background:transparent!important}
+#map.no-bg .leaflet-tile-pane{display:none}
+.leaflet-control-zoom{border:none!important;box-shadow:var(--sh)!important;border-radius:6px!important;overflow:hidden;margin-top:10px!important}
+.leaflet-control-zoom a{background:var(--w)!important;color:var(--n7)!important;border:none!important;border-bottom:1px solid var(--n2)!important;width:30px!important;height:30px!important;line-height:30px!important;font-size:16px!important}
+.leaflet-control-zoom a:last-child{border-bottom:none!important}
+.leaflet-control-zoom a:hover{background:var(--n0)!important;color:var(--g7)!important}
+.leaflet-control-scale{margin-bottom:38px!important;margin-left:10px!important}
+.leaflet-control-scale-line{background:rgba(255,255,255,.92)!important;border:1px solid var(--n3)!important;border-radius:4px!important;color:var(--n7)!important;font-size:11px!important;padding:2px 7px!important;box-shadow:var(--sh-sm)!important;font-weight:600}
+.leaflet-tooltip{background:rgba(15,46,30,.92);color:#fff;border:none;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:600;box-shadow:var(--sh);white-space:nowrap}
+.leaflet-tooltip-top:before{border-top-color:rgba(15,46,30,.92)}
+.leaflet-tooltip-bottom:before{border-bottom-color:rgba(15,46,30,.92)}
+#bm{position:absolute;top:12px;right:12px;background:var(--w);border-radius:var(--r-lg);box-shadow:var(--sh-lg);padding:12px 14px;z-index:500;min-width:200px;max-height:420px;overflow-y:auto;display:none;scrollbar-width:thin}
+.bm-o{display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:11.5px;color:var(--n7);transition:color .12s}
+.bm-o:hover{color:var(--g7)}
+.bm-o input{accent-color:var(--g6);margin:0;cursor:pointer}
+.bm-o .bm-n{flex:1}
+.bm-o .bm-src{font-size:9.5px;color:var(--n5);font-weight:500}
+#bm .bm-h{font-size:10px;font-weight:600;color:var(--n5);text-transform:uppercase;letter-spacing:.06em;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid var(--n2)}
+#mt{position:absolute;top:12px;left:50px;display:flex;flex-direction:column;gap:5px;z-index:500}
+.tb{width:32px;height:32px;background:var(--w);border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--n7);box-shadow:var(--sh);transition:all .15s}
+.tb:hover{background:var(--n0);color:var(--g7);transform:translateY(-1px)}
+#cb{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(180deg,transparent,rgba(15,46,30,.92));color:rgba(255,255,255,.92);font-size:11px;padding:6px 12px 5px;display:flex;align-items:center;gap:16px;z-index:500;font-variant-numeric:tabular-nums}
+#cb span{white-space:nowrap}
+#loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--w);border-radius:var(--r-lg);padding:16px 24px;font-size:12.5px;color:var(--n7);z-index:600;box-shadow:var(--sh-lg);display:none;font-weight:500}
+#loading::before{content:'';display:inline-block;width:14px;height:14px;border:2px solid var(--n2);border-top-color:var(--g6);border-radius:50%;animation:spin .8s linear infinite;margin-right:9px;vertical-align:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#rp{width:var(--rw);height:100%;background:var(--w);display:flex;flex-shrink:0;box-shadow:-2px 0 8px rgba(15,46,30,.06);z-index:10;overflow:hidden}
+.rt{display:flex;border-bottom:1px solid var(--n2);flex-shrink:0;background:var(--n0)}
+.rtb{flex:1;padding:12px 6px;text-align:center;font-size:11px;font-weight:600;color:var(--n5);cursor:pointer;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;transition:all .18s}
+.rtb.on{color:var(--g7);border-bottom-color:var(--g6)}
+.rtb:hover:not(.on){color:var(--n7);background:var(--n1)}
+.rb{flex:1;overflow-y:auto;padding:16px;scrollbar-width:thin}
+.rb::-webkit-scrollbar{width:4px}.rb::-webkit-scrollbar-thumb{background:var(--n3);border-radius:2px}
+.tc{display:none}.tc.on{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.gal {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+}
+.gal::-webkit-scrollbar { height: 6px; }
+.gal::-webkit-scrollbar-thumb { background: var(--n3); border-radius: 3px; }
+.gal-h{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--n9);margin-bottom:8px}
+.gi{aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;transition:all .2s;box-shadow:var(--sh-sm);background:var(--n1)}
+.gi:hover{opacity:.85;transform:scale(1.04);box-shadow:var(--sh)}
+.gal-empty{grid-column:1/-1;padding:14px;text-align:center;font-size:11px;color:var(--n5);background:var(--n0);border-radius:6px;border:1px dashed var(--n3)}
+.st{font-size:13.5px;font-weight:700;color:var(--n9);margin-bottom:8px;letter-spacing:-.01em}
+.dt{font-size:11.5px;color:var(--n7);line-height:1.6;margin-bottom:6px}
+.ig{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.ic{background:var(--n0);border-radius:var(--r);padding:10px 12px;border:1px solid var(--n2);transition:border-color .15s}
+.ic:hover{border-color:var(--n3)}
+.ic .il{font-size:9.5px;color:var(--n5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;font-weight:600}
+.ic .iv{font-size:12.5px;font-weight:600;color:var(--n9);line-height:1.3}
+.dv{height:1px;background:var(--n2);margin:14px 0}
+.eb{padding:3px 11px;border-radius:12px;font-size:10.5px;font-weight:600;display:inline-block}
+.eb.fort{background:#ff0d00;color:#fff}.eb.tfort{background:#b10002;color:#fff}
+.eb.mod{background:#ffac00;color:#fff}.eb.faib{background:#52e11b;color:#111}
+.eb.nul{background:#8af193;color:#111}.eb.nc{background:#e0e0e0;color:#555}
+.eb.maj{background:#770015;color:#fff}
+
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.kpi{background:linear-gradient(135deg,var(--n0),var(--w));border:1px solid var(--n2);border-radius:8px;padding:10px 12px;position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--sh)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--g5)}
+.kpi.k-warn::before{background:var(--warning)}.kpi.k-err::before{background:var(--error)}.kpi.k-info::before{background:var(--info)}
+.kpi-val{font-size:22px;font-weight:800;color:var(--n9);line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi-lbl{font-size:9.5px;color:var(--n5);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-top:3px}
+.kpi-sub{font-size:10px;color:var(--n6);margin-top:2px;font-weight:500}
+.kpi-info{position:absolute;top:8px;right:8px;width:14px;height:14px;border-radius:50%;background:var(--n2);color:var(--n5);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:help;border:none}
+.kpi-info:hover{background:var(--g6);color:var(--w)}
+
+.donut-wrap{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.donut-svg{flex-shrink:0}
+.donut-legend{flex:1;font-size:10.5px}
+.donut-legend .dl{display:flex;align-items:center;gap:5px;padding:2px 0;color:var(--n7)}
+.donut-legend .dl .dc{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.donut-legend .dl .dv{margin-left:auto;font-weight:600;color:var(--n9);font-variant-numeric:tabular-nums}
+.donut-center{font-size:18px;font-weight:800;fill:var(--n9);text-anchor:middle;dominant-baseline:central}
+.donut-sub{font-size:8px;fill:var(--n5);text-anchor:middle;dominant-baseline:central;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+
+.sbr{margin-bottom:9px}
+.sbl{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;color:var(--n7)}
+.sbl .sv{font-weight:600;color:var(--n9);font-variant-numeric:tabular-nums}
+.sbt{height:6px;background:var(--n2);border-radius:3px;overflow:hidden}
+.sbf{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+/* Drilldown bars */
+.sbr.clickable{cursor:pointer;transition:background .12s;border-radius:4px;padding:3px 6px;margin-left:-6px;margin-right:-6px}
+.sbr.clickable:hover{background:var(--n0)}
+.sbr.clickable.active{background:var(--g0)}
+.drill-breadcrumb{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--n5);margin-bottom:8px;flex-wrap:wrap}
+.drill-breadcrumb .bc-item{cursor:pointer;color:var(--n6);transition:color .12s}
+.drill-breadcrumb .bc-item:hover{color:var(--g7)}
+.drill-breadcrumb .bc-sep{color:var(--n3)}
+.drill-breadcrumb .bc-current{color:var(--n9);font-weight:600}
+.drill-back{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--g6);cursor:pointer;margin-bottom:8px;font-weight:600}
+.drill-back:hover{color:var(--g7)}
+
+.sec-h{font-size:10.5px;font-weight:700;color:var(--n5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.sec-h::after{content:'';flex:1;height:1px;background:var(--n2)}
+.sec-h .si{width:14px;height:14px;border-radius:50%;background:var(--n2);color:var(--n5);font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s}
+.sec-h .si:hover{background:var(--g6);color:var(--w)}
+
+.cmp-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px;border-radius:6px;overflow:hidden;border:1px solid var(--n2)}
+.cmp-tbl th{background:var(--n1);padding:6px 8px;text-align:left;font-weight:700;color:var(--n7);font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.cmp-tbl td{padding:5px 8px;border-bottom:1px solid var(--n1);color:var(--n7)}
+.cmp-tbl tr:last-child td{border:none}
+.cmp-tbl .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--n9)}
+.cmp-tbl tr:hover td{background:var(--n0)}
+.cmp-bar{display:inline-block;height:4px;border-radius:2px;vertical-align:middle;margin-right:4px}
+
+.rank{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--n1);font-size:11px}
+.rank:last-child{border:none}
+.rank-n{width:20px;height:20px;border-radius:50%;background:var(--n1);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--n5);flex-shrink:0;font-variant-numeric:tabular-nums}
+.rank-n.top{background:var(--g6);color:var(--w)}
+.rank-name{flex:1;color:var(--n7);font-weight:500}
+.rank-val{font-weight:700;color:var(--n9);font-variant-numeric:tabular-nums}
+.rank-bar{width:100%;height:4px;background:var(--n2);border-radius:2px;margin-top:3px;overflow:hidden}
+.rank-bar-fill{height:100%;border-radius:2px}
+
+/* Data tab */
+.data-section{margin-bottom:20px}
+.data-h{font-size:13px;font-weight:700;color:var(--n9);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--g6);display:flex;align-items:center;gap:8px}
+.data-h .dh-n{width:22px;height:22px;border-radius:50%;background:var(--g6);color:var(--w);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.data-card{background:var(--n0);border:1px solid var(--n2);border-radius:8px;padding:12px;margin-bottom:8px;transition:border-color .15s}
+.data-card:hover{border-color:var(--n3)}
+.data-card .dcn{font-size:12px;font-weight:700;color:var(--n8);margin-bottom:4px;display:flex;align-items:center;gap:7px}
+.data-card .dcn .sw{width:13px;height:13px;border-radius:3px}
+.data-card .dcd{font-size:11px;color:var(--n6);line-height:1.55;margin-bottom:6px}
+.data-card .dct{font-size:10px;color:var(--n5);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-top:6px;padding-top:6px;border-top:1px dashed var(--n2)}
+.data-card .dct b{color:var(--g7);font-weight:700}
+.data-filter{margin-bottom:12px}
+.data-filter input{width:100%;padding:8px 11px;border:1px solid var(--n2);border-radius:6px;font-size:12px;outline:none;background:var(--w);color:var(--n7)}
+.data-filter input:focus{border-color:var(--g6);box-shadow:0 0 0 3px rgba(45,133,86,.12)}
+
+#ft{position:fixed;bottom:0;left:0;right:0;height:var(--fh);background:var(--w);border-top:1px solid var(--n2);display:flex;align-items:center;justify-content:space-between;padding:0 18px;z-index:1000;font-size:11px;color:var(--n5)}
+.sd{display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:#2ecc71;box-shadow:0 0 0 3px rgba(46,204,113,.18)}
+#ft a{color:var(--n5);cursor:pointer;text-decoration:none;transition:color .12s}
+#ft a:hover{color:var(--g7)}
+
+.pp{min-width:260px;max-width:320px;font-size:12px}
+.pp .pt{font-size:14px;font-weight:700;color:var(--n9);margin-bottom:6px;letter-spacing:-.01em}
+.pp .pb{display:inline-block;padding:2px 10px;border-radius:11px;font-size:10.5px;font-weight:600;margin-bottom:9px}
+.pp .pr{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--n1);font-size:11.5px}
+.pp .pr:last-of-type{border:none}
+.pp .pl{color:var(--n5);min-width:75px;font-weight:500}
+.pp .pv{font-weight:600;color:var(--n8);flex:1}
+.leaflet-popup-content-wrapper{border-radius:var(--r-lg)!important;box-shadow:var(--sh-lg)!important;padding:0!important;border:1px solid var(--n2)!important}
+.leaflet-popup-content{margin:13px 15px!important}
+.leaflet-popup-close-button{font-size:18px!important;top:6px!important;right:8px!important;color:var(--n5)!important;padding:0!important}
+.leaflet-popup-close-button:hover{color:var(--n9)!important}
+
+#mo{position:fixed;inset:0;background:rgba(15,46,30,.42);backdrop-filter:blur(3px);z-index:2000;display:none;align-items:center;justify-content:center;animation:fade .2s ease}
+#mo.op{display:flex}
+#mb{background:var(--w);border-radius:14px;padding:24px;max-width:580px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 12px 36px rgba(15,46,30,.22);scrollbar-width:thin}
+#mb::-webkit-scrollbar{width:6px}#mb::-webkit-scrollbar-thumb{background:var(--n3)}
+#mb h2{font-size:16px;font-weight:700;margin-bottom:4px;letter-spacing:-.01em;color:var(--n9)}
+#mb .ms{font-size:11.5px;color:var(--n5);margin-bottom:14px}
+#mb h3{font-size:10.5px;font-weight:700;color:var(--n5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;margin-top:14px}
+#mb p{font-size:12px;color:var(--n7);line-height:1.6;margin-bottom:12px}
+#mb ul{font-size:12px;color:var(--n7);line-height:1.6;margin-bottom:12px;padding-left:18px}
+#mb li{margin-bottom:4px}
+#mb table{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:12px;border-radius:6px;overflow:hidden;border:1px solid var(--n2)}
+#mb th{background:var(--n1);padding:6px 8px;text-align:left;font-weight:600;color:var(--n7);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
+#mb td{padding:5px 8px;border-bottom:1px solid var(--n1);color:var(--n7)}
+#mb tr:last-child td{border:none}
+#mb td code{background:var(--n1);padding:2px 6px;border-radius:3px;font-size:10.5px;color:var(--g7);font-family:'SF Mono',Consolas,monospace}
+.mc{float:right;background:none;border:none;font-size:20px;cursor:pointer;color:var(--n5);line-height:1;padding:0;transition:color .12s}
+.mc:hover{color:var(--n9)}
+.swatch-grid{display:flex;flex-wrap:wrap;gap:8px}
+.swatch-grid div{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--n7)}
+.swatch-grid span{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.12);display:inline-block;flex-shrink:0}
+
+@media(max-width:900px){:root{--lw:220px;--rw:300px}#nav .nb span:not(.ni){display:none}#nav .nb{padding:6px 8px}}
+@media(max-width:680px){#lp{position:absolute;left:0;top:0;bottom:0;width:260px;box-shadow:var(--sh-lg)}#lp.coll{width:0}#rp{position:absolute;right:0;top:0;bottom:0;width:280px}#sb{display:none}.logo{min-width:auto}.logo-t{display:none}}
+</style>
+</head>
+<body>
+
+<header id="hd">
+  <div class="logo">
+    <img src="./logo_pnr.jpg" alt="Logo PNR CMO" style="height:42px;width:42px;object-fit:contain;border-radius:6px;flex-shrink:0"/>
+    <div class="logo-t"><div class="t1">PARC NATUREL RÉGIONAL</div><div class="t2">des Caps et Marais d'Opale</div></div>
+  </div>
+  <div id="sb">
+    <span class="si">⌕</span>
+    <input type="text" id="search-input" placeholder="Rechercher une commune (nouveau périmètre 2028-2044)…" autocomplete="off"/>
+    <div id="search-results"></div>
+  </div>
+  <nav id="nav">
+    <button class="nb on" data-view="accueil"><span class="ni">⌂</span><span>Accueil</span></button>
+  </nav>
+  <img src="./logo_pnr.jpg" alt="Logo PNR CMO" style="height:44px;width:44px;object-fit:contain;border-radius:6px;margin-left:8px;flex-shrink:0"/>
+</header>
+
+<div id="app">
+  <aside id="lp">
+    <div class="ph" onclick="togglePanel()"><span id="pt">Couches</span><button id="ptb">◀</button></div>
+    <div class="ps" id="tree"></div>
+    <div id="leg-sec">
+      <div class="lh" onclick="toggleLegend()"><span>Légende classée</span><span id="la">▾</span></div>
+      <div class="lb" id="lb"></div>
+    </div>
+  </aside>
+  <div id="mc">
+    <div id="map"></div>
+    <div id="mt">
+      <button class="tb" title="Plein écran" onclick="toggleFS()">⛶</button>
+      <button class="tb" title="Fonds de carte" onclick="toggleBM()">⧉</button>
+    </div>
+    <div id="bm"></div>
+    <div id="cb"><span id="clat">Lat : —</span><span id="clng">Lng : —</span><span>EPSG:4326</span></div>
+    <div id="loading">Chargement des couches…</div>
+  </div>
+  <aside id="rp">
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="rt">
+        <button class="rtb on" onclick="swTab(0,this)">Présentation du site</button>
+        <button class="rtb" onclick="swTab(1,this)">Analyse &amp; Diagnostic</button>
+        <button class="rtb" onclick="swTab(2,this)">Données</button>
+      </div>
+      <div class="rb">
+        <div class="tc on" id="t0">
+          
+          <div class="gal-h">🖼 Galerie photos — Paysage du site</div>
+          <div class="gal" id="site-photo-gallery">
+            <div class="gal-empty">Cliquez sur un site pour afficher ses photos.</div>
+          </div>
+
+          <div class="gal-h">🖼 Galerie photos — Espèces</div>
+          <div class="gal" id="photo-gallery">
+            <div class="gal-empty">Cliquez sur un site pour afficher les photos d'espèces associées.</div>
+          </div>
+
+          <div class="st">Description</div>
+          <p class="dt" id="rdesc">Cliquez sur un site sur la carte pour afficher sa description et ses données d'inventaire.</p>
+          <div class="dv"></div>
+          <div class="ig">
+            <div class="ic"><div class="il">Commune</div><div class="iv" id="rcom">—</div></div>
+            <div class="ic"><div class="il">Surface</div><div class="iv" id="rsurf">—</div></div>
+            <div class="ic"><div class="il">Type de milieu</div><div class="iv" id="rtype">—</div></div>
+            <div class="ic"><div class="il">Code site</div><div class="iv" id="rcode">—</div></div>
+          </div>
+          <div class="st">Enjeux du site</div>
+          <div style="margin-bottom:10px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div><span style="font-size:10px;color:var(--n5);display:block;margin-bottom:3px;font-weight:600;letter-spacing:0.04em" title="Enjeu directement sur le site">FAUNE (SITE)</span><span class="eb nc" id="renj-faune">—</span></div>
+            <div><span style="font-size:10px;color:var(--n5);display:block;margin-bottom:3px;font-weight:600;letter-spacing:0.04em" title="Enjeu maximum attribué au site en fonction de la faune situé dans le site et dans un tamoin allentour de 300 mètre">FAUNE (TAMPON 300M)</span><span class="eb nc" id="renj-faune-tamp">—</span></div>
+            <div><span style="font-size:10px;color:var(--n5);display:block;margin-bottom:3px;font-weight:600;letter-spacing:0.04em" title="Enjeu sur le site">FLORE (SITE)</span><span class="eb nc" id="renj-flore">—</span></div>
+            <div><span style="font-size:10px;color:var(--n5);display:block;margin-bottom:3px;font-weight:600;letter-spacing:0.04em" title="Enjeu maximal attribué au site en fonction de la flore connu dans le site et dont les zonages d'inventaires se superpose pas entièrement sur le périmètre du site">FLORE POTENTIELLE</span><span class="eb nc" id="renj-flore-pote">—</span></div>
+          </div>
+          <div class="st">Informations foncières</div>
+          <p class="dt" id="rfon">—</p>
+          <div class="dv"></div>
+          <div class="st">Fiche Site</div>
+          <a id="btn-fiche-site" href="#" target="_blank" style="display:none; text-decoration:none; padding:10px 16px; background:var(--g6); color:var(--w); border-radius:8px; font-size:12px; font-weight:600; text-align:center; box-shadow:var(--sh-sm); transition:background 0.15s; margin-top: 10px;">📄 Télécharger la fiche PDF</a>
+        </div>
+        
+        <div class="tc" id="t1">
+          <!-- 1. Vue d'ensemble -->
+          <div class="gh" onclick="toggleStatSection(this, event)">
+            <span class="ar op">▶</span><span>Vue d'ensemble</span>
+            <span class="si" onclick="showStatInfo('overview')">i</span>
+          </div>
+          <div class="gb op">
+            <div class="kpi-grid" id="kpi-grid"></div>
+          </div>
+
+          <div class="dv"></div>
+
+          <!-- 2. Enjeux faune -->
+          <div class="gh" onclick="toggleStatSection(this, event)">
+            <span class="ar">▶</span><span>Enjeux faune par niveau</span>
+            <span class="si" onclick="showStatInfo('enjeux-faune')">i</span>
+          </div>
+          <div class="gb">
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <div style="flex:1;min-width:180px">
+                <div style="font-size:10px;font-weight:600;color:var(--n6);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Par site</div>
+                <div class="donut-wrap" id="donut-faune-wrap"></div>
+              </div>
+              <div style="flex:1;min-width:180px">
+                <div style="font-size:10px;font-weight:600;color:var(--n6);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Par tampon 300 m</div>
+                <div class="donut-wrap" id="donut-faune-tamp-wrap"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dv"></div>
+
+          <!-- 3. Enjeux flore -->
+          <div class="gh" onclick="toggleStatSection(this, event)">
+            <span class="ar">▶</span><span>Enjeux flore par niveau</span>
+            <span class="si" onclick="showStatInfo('enjeux-flore')">i</span>
+          </div>
+          <div class="gb">
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <div style="flex:1;min-width:180px">
+                <div style="font-size:10px;font-weight:600;color:var(--n6);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Par site (Flore_Site)</div>
+                <div class="donut-wrap" id="donut-flore-site-wrap"></div>
+              </div>
+              <div style="flex:1;min-width:180px">
+                <div style="font-size:10px;font-weight:600;color:var(--n6);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Flore potentielle (Flore_Pote)</div>
+                <div class="donut-wrap" id="donut-flore-pote-wrap"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dv"></div>
+
+          <!-- 4. Type de milieu -->
+          <div class="gh" onclick="toggleStatSection(this, event)">
+            <span class="ar">▶</span><span>Répartition par type de milieu</span>
+            <span class="si" onclick="showStatInfo('milieu')">i</span>
+          </div>
+          <div class="gb">
+            <div class="donut-wrap" id="donut-milieu-wrap"></div>
+          </div>
+
+          <div class="dv"></div>
+
+          <!-- 5. Zonages naturels -->
+          <div class="gh" onclick="toggleStatSection(this, event)">
+            <span class="ar">▶</span><span>Recouvrement des zonages naturels</span>
+            <span class="si" onclick="showStatInfo('zonages')">i</span>
+          </div>
+          <div class="gb">
+            <table class="cmp-tbl" id="cmp-zonages"></table>
+          </div>
+
+          <div class="dv"></div>
+
+          <!-- 6. Foncier -->
+          <div class="gh" onclick="toggleStatSection(this, event)">
+            <span class="ar">▶</span><span>Statut foncier des parcelles</span>
+            <span class="si" onclick="showStatInfo('foncier')">i</span>
+          </div>
+          <div class="gb">
+            <div class="donut-wrap" id="donut-foncier-wrap"></div>
+          </div>
+
+          <div class="dv"></div>
+
+          <!-- 7. Communes -->
+          <div class="gh" onclick="toggleStatSection(this, event)">
+            <span class="ar">▶</span><span>Top 5 communes — nb de sites</span>
+            <span class="si" onclick="showStatInfo('communes')">i</span>
+          </div>
+          <div class="gb">
+            <div id="rank-communes"></div>
+          </div>
+
+          <div class="dv"></div>
+
+          <!-- 8. Observations faune -->
+          <div class="gh" onclick="toggleStatSection(this, event)">
+            <span class="ar">▶</span><span>Observations faune par classe (site)</span>
+            <span class="si" onclick="showStatInfo('classes')">i</span>
+          </div>
+          <div class="gb">
+            <div id="ch-classes"></div>
+            <div style="margin-top:10px" id="ch-classes-tamp-wrap">
+              <div style="font-size:10px;font-weight:600;color:var(--n6);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Par tampon 300 m</div>
+              <div id="ch-classes-tamp"></div>
+            </div>
+          </div>
+
+          <div class="dv"></div>
+
+          <!-- 9. Flore avérée -->
+          <div class="gh" onclick="toggleStatSection(this, event)">
+            <span class="ar">▶</span><span>Observations flore (site)</span>
+            <span class="si" onclick="showStatInfo('flore-classes')">i</span>
+          </div>
+          <div class="gb">
+            <div id="ch-flore-classes"></div>
+          </div>
+
+          <div class="dv"></div>
+
+          <!-- 10. Flore potentielle -->
+          <div class="gh" onclick="toggleStatSection(this, event)">
+            <span class="ar">▶</span><span>Observations flore potentielle</span>
+            <span class="si" onclick="showStatInfo('flore-classes')">i</span>
+          </div>
+          <div class="gb">
+            <div id="ch-flore-pot-classes"></div>
+          </div>
+
+          <div id="flore-by-site"></div>
+        </div>
+
+        <div class="tc" id="t2">
+          <div class="data-filter"><input type="text" id="data-search" placeholder="Filtrer les données par nom ou mot-clé…"/></div>
+          <div id="data-content"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<footer id="ft">
+  <div style="display:flex;gap:16px"><span>© PNR CMO — Tous droits réservés</span><a>Mentions légales</a><a>Contact</a></div>
+  <div class="sd"><span class="dot"></span><span>En ligne</span><span style="margin-left:10px;color:var(--n4)">v2.4.0</span></div>
+</footer>
+
+<div id="mo" onclick="closeMO(event)"><div id="mb"><button class="mc" onclick="closeMOD()">✕</button><h2 id="mtt"></h2><p class="ms" id="mts"></p><div id="mc2"></div></div></div>
+<script>
+const BASE='./geojson/';
+
+const RASTERS=[
+ {id:'none',name:'Aucun fond de carte',url:null,attr:'—',maxZoom:20},
+ {id:'osm',name:'OSM / IGN',url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',attr:'© OpenStreetMap',maxZoom:19},
+ {id:'Ortho_20cm',name:'Ortho (20cm)',url:'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',attr:'© IGN',maxZoom:19},
+ {id:'Google_Sat',name:'Google satellite',url:'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',attr:'© Google',maxZoom:20},
+ {id:'Photos_annees50',name:'Photographies aériennes (années 50)',url:'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS.1950-1965&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',attr:'© IGN',maxZoom:18},
+];
+
+const MILIEU_COLORS={'Coteau calcaire':'#f0c040','Coteaux calcaires':'#f0c040','Milieux littoraux':'#5bc8d9','Lande':'#8c6239','Landes':'#8c6239','Prairies marnicoles':'#6abf69'};
+const MILIEU_KEYS=Object.keys(MILIEU_COLORS);
+
+function norm(s){return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ')}
+function propNorm(props,field){
+  if(!props||!field)return undefined;
+  if(props[field]!=null&&props[field]!=='')return props[field];
+  const target=norm(field);
+  for(const k of Object.keys(props)){
+    if(norm(k)===target&&props[k]!=null&&props[k]!=='')return props[k];
+  }
+  return undefined;
+}
+function matchEnjeu(v,keyword){
+  const n=norm(v);if(!n)return false;
+  if(keyword==='maj')return n.includes('majeur');
+  if(keyword==='tfort')return n.includes('tres fort')||n.includes('très fort');
+  if(keyword==='fort')return n.includes('fort')&&!n.includes('tres')&&!n.includes('très')&&!n.includes('majeur');
+  if(keyword==='mod')return n.includes('modere')||n.includes('modéré');
+  if(keyword==='faib')return n.includes('faible');
+  if(keyword==='nul')return n.includes('nul')||n.includes('pas evalue')||n.includes('pas évalué');
+  if(keyword==='nc')return n.includes('n/c')||n.includes('nc')||n.includes('non renseign')||n===''||n==='-';
+  return false;
+}
+
+const LAYERS=[
+ {id:'Courbes_niv',name:'Courbes de niveaux',tab:['Topographie'],files:['Courbes_niv','Courbes_niv_1','Courbes_niv_2'],style:'line',color:'#c4956a',weight:1,opacity:.7,checked:false,fields:[{f:'ELEVATION',s:'Valeur des courbes'}],desc:'Courbes de niveau permettant la stratification des différents reliefs topographiques à l\'échelle du PNR.'},
+ {id:'Localisations_sites',name:'Localisation des sites',tab:['Sites repérés'],style:'point',color:'#e53935',checked:true,fields:[{f:'Num',s:'Numéro du site'}],desc:'Pointages/localisation des différents sites repérés.'},
+ {id:'Sites_reperes_enjeux_max',name:'Sites repérés',tab:['Sites repérés'],style:'poly-colormap',colorBy:'Type',colorMap:MILIEU_COLORS,defaultColor:'#aaa',checked:true,fields:[{f:'Code_Site',s:'Code attribué à chaque site'},{f:'Num',s:'Numéro du site'},{f:'Type',s:'Typologie de milieu'},{f:'Descr',s:'Description supplémentaire'},{f:'Surface',s:'Surface en hectare'},{f:'Proxi_Pro',s:'Proximité aire protégée'},{f:'Detecteur',s:'Identificateur'},{f:'ZNIEFF I',s:'Zone ZNIEFF I'},{f:'Foncier',s:'Statut foncier'},{f:'Faune_Site',s:'Enjeu faune site'},{f:'Faune_Tamp',s:'Enjeu faune tampon 300m'},{f:'Flore_Site',s:'Enjeu flore site'},{f:'Flore_Pote',s:'Enjeu flore potentielle'}],desc:'Zonages des sites repérés et identifiés dans le cadre du stage.'},
+ {id:'Sites_reperes_300m',name:'Sites repérés et tampon (300m)',tab:['Sites repérés'],style:'poly-colormap',colorBy:'Type',colorMap:MILIEU_COLORS,defaultColor:'#aaa',checked:false,fields:[{f:'Code_Site',s:'Code attribué'},{f:'Num',s:'Numéro du site'},{f:'Type',s:'Typologie de milieu'},{f:'Surface',s:'Surface en hectare'}],desc:'Zonages des sites repérés avec un tampon supplémentaire de 300 mètres.'},
+ {id:'Densite_site_maille',name:'Densité de site par maille',tab:['Sites repérés','Analyses primaires'],style:'poly-grad',colorBy:'Nb_Sites',gradColors:['#ffffff','#c8e6c9','#ffd54f','#ff8f00','#e53935','#b71c1c'],checked:false,fields:[{f:'Num_maille',s:'Numéro de maille'},{f:'Nb_Sites',s:'Nombre de sites'}],desc:'Permet de connaître la densité de site par maille.'},
+ {id:'PAPECH',name:'Pelouses PAPECH',tab:['Programmes','PAPECH'],style:'poly-outline',color:'#f48fb1',weight:1.5,checked:false,fields:[{f:'area',s:'Surface en m²'}],desc:'Zonages des pelouses du programme PAPECH.'},
+ {id:'Maillage_5x5km',name:'Maillage (5x5 km)',tab:['Inventaires et pointages','Mailles'],style:'poly-outline',color:'#222',weight:1.5,checked:false,fields:[{f:'Num_maille',s:'Numéro de maille'}],desc:'Grille de 5km par 5km pour la prospection.'},
+ {id:'APPB',name:'APPB',tab:['Zonages naturels','Réglementaires'],style:'poly',color:'#ffd600',fillOpacity:.4,checked:false,fields:[{f:'NOM_SITE',s:'Nom du site'},{f:'SURF_SIG',s:'Surface en hectare'}],desc:'Arrêté Préfectoral de Protection de Biotope.'},
+ {id:'ENS_59',name:'ENS (59)',tab:['Zonages naturels','Réglementaires','Foncier'],style:'poly',color:'#9e9e9e',fillOpacity:.4,checked:false,fields:[{f:'NOM_SITE',s:'Nom de l\'ENS'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Espaces Naturels Sensibles du Nord.'},
+ {id:'ENS_EDEN62',name:'ENS (62)',tab:['Zonages naturels','Réglementaires','Foncier'],style:'poly',color:'#ce93d8',fillOpacity:.4,checked:false,fields:[{f:'NOM',s:'Nom de l\'ENS'},{f:'SURF',s:'Surface en hectare'}],desc:'Espaces Naturels Sensibles du Pas-de-Calais.'},
+ {id:'Forets_publiques',name:'Forêts publiques',tab:['Zonages naturels','Réglementaires','Foncier'],style:'poly',color:'#388e3c',fillOpacity:.45,checked:false,fields:[{f:'llib_frt',s:'Massifs boisés'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Forêts publiques domaniales ou communales.'},
+ {id:'Rbiol',name:'Réserves biologiques',tab:['Zonages naturels','Réglementaires'],style:'poly',color:'#a5d6a7',fillOpacity:.4,checked:false,fields:[{f:'NOM_SITE',s:'Nom du site'}],desc:'Espaces forestiers protégés.'},
+ {id:'RNN',name:'RNN',tab:['Zonages naturels','Réglementaires'],style:'poly',color:'#1b5e20',fillOpacity:.5,checked:false,fields:[{f:'NOM_SITE',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Réserves Naturelles Nationales.'},
+ {id:'RNR',name:'RNR',tab:['Zonages naturels','Réglementaires'],style:'poly',color:'#4caf50',fillOpacity:.45,checked:false,fields:[{f:'NOM_SITE',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Réserves Naturelles Régionales.'},
+ {id:'Sites_CELRL',name:'Sites du CELRL',tab:['Zonages naturels','Réglementaires','Foncier'],style:'poly',color:'#b39ddb',fillOpacity:.4,checked:false,fields:[{f:'NOM_SITE',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Acquisitions foncières littorales.'},
+ {id:'Sites_CEN',name:'Sites du CEN',tab:['Zonages naturels','Réglementaires','Foncier'],style:'poly',color:'#ffb74d',fillOpacity:.45,checked:false,fields:[{f:'NOM_SITE',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Sites gérés par le Conservatoire d\'Espaces Naturels.'},
+ {id:'Corridors_terrestres',name:'Corridors écologiques',tab:['Zonages naturels','TVB'],style:'line',color:'#795548',weight:2,opacity:.8,checked:false,fields:[{f:'MILMAJ_NAT',s:'Milieu national'},{f:'MILMAJ_REG',s:'Milieu régional'}],desc:'Corridors de déplacement pour la faune et la flore.'},
+ {id:'Cours_eau',name:'Cours d\'eau',tab:['Zonages naturels','TVB'],style:'line',color:'#29b6f6',weight:1.5,opacity:.9,checked:true,fields:[{f:'Long (km)',s:'Longueur en km'}],desc:'Réseau hydrographique.'},
+ {id:'Reservoirs_biodiv',name:'Réservoirs de biodiversité',tab:['Zonages naturels','TVB'],style:'poly-colormap',colorBy:'MILMAJ_REG',colorMap:{'Autres milieux':'#f48fb1','Coteaux calcaires':'#ffd600','Dunes et estrans sableux':'#c5e1a5','Estuaires':'#ce93d8','Falaises et estrans rocheux':'#bf360c','Forêts':'#2e7d32','Landes et pelouses acidiphiles':'#6d4c41','Prairies et/ou bocage':'#8bc34a','Zones humides':'#b3e5fc'},defaultColor:'#ccc',checked:false,fields:[{f:'MILMAJ_NAT',s:'Niveau national'},{f:'MILMAJ_REG',s:'Niveau régional'},{f:'Surf_m2',s:'Surface en m²'}],desc:'Réservoirs de biodiversité TVB.'},
+ {id:'INPG',name:'INPG',tab:['Zonages naturels','Inventaires'],style:'poly-hatch',color:'#f44336',checked:false,fields:[{f:'LB_SITE',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Inventaire National du Patrimoine Géologique.'},
+ {id:'ZICO',name:'ZICO',tab:['Zonages naturels','Inventaires'],style:'poly',color:'#b71c1c',fillOpacity:.35,checked:false,fields:[{f:'NOM',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Zone d\'Importance pour la Conservation Oiseaux.'},
+ {id:'ZNIEFF_I',name:'ZNIEFF (Type I)',tab:['Zonages naturels','Inventaires'],style:'poly-hatch',color:'#f06292',checked:true,fields:[{f:'NOM',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Zones Naturelles d\'Intérêt Écologique, Faunistique et Floristique de type I.'},
+ {id:'ZNIEFF_II',name:'ZNIEFF (Type II)',tab:['Zonages naturels','Inventaires'],style:'poly-hatch',color:'#ffb300',checked:true,fields:[{f:'NOM',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'ZNIEFF de type II (grands ensembles naturels).'},
+ {id:'Grands_sites_Fr',name:'Grands sites de France',tab:['Zonages naturels','Sites inscrits ou classés'],style:'poly',color:'#ef9a9a',fillOpacity:.4,checked:false,fields:[{f:'NOM',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Paysages remarquables labellisés.'},
+ {id:'RAMSAR',name:'Sites RAMSAR',tab:['Zonages naturels','Sites inscrits ou classés'],style:'poly',color:'#1976d2',fillOpacity:.4,checked:false,fields:[{f:'NOM_SITE',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Zones humides d\'importance internationale.'},
+ {id:'Rbios',name:'Réserves de biosphères',tab:['Zonages naturels','Sites inscrits ou classés'],style:'poly-colormap',colorBy:'NOM_SITE',blueGradientMode:true,checked:false,fields:[{f:'NOM_SITE',s:'Nom du site'},{f:'Type_zon',s:'Type de zone'}],desc:'Réserves de biosphère.'},
+ {id:'Sites_interet_geopat',name:'Sites d\'intérêt géo-patrimoniaux',tab:['Zonages naturels','Sites inscrits ou classés'],style:'poly',color:'#b71c1c',fillOpacity:.4,checked:false,fields:[{f:'nom_site',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Patrimoine géologique remarquable.'},
+ {id:'PNR_CMO_2013-2028',name:'Périmètre PNR CMO (2013-2028)',tab:['Zonages naturels','Contractuels'],style:'poly-outline',color:'#388e3c',weight:3,checked:true,fields:[{f:'Surf_ha',s:'Surface en hectare'}],desc:'Charte actuelle du PNR CMO.'},
+ {id:'PNR_CMO_2028-2044',name:'Périmètre PNR CMO (2028-2044)',tab:['Zonages naturels','Contractuels'],style:'poly-outline',color:'#c62828',weight:3,checked:false,fields:[{f:'Surf_ha',s:'Surface en hectare'}],desc:'Futur périmètre prévisionnel (révision de charte).'},
+ {id:'Sites_intervention_PNR_CMO',name:'Sites d\'intervention PNR CMO',tab:['Zonages naturels','Contractuels'],style:'poly-outline',color:'#8bc34a',weight:1.5,checked:false,fields:[{f:'Nom_site',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Périmètres d\'action opérationnelle.'},
+ {id:'ZPS',name:'ZPS',tab:['Zonages naturels','Contractuels'],style:'poly',color:'#558b2f',fillOpacity:.35,checked:true,fields:[{f:'SITENAME',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Zone de Protection Spéciale (Directive Oiseaux).'},
+ {id:'ZSC',name:'ZSC',tab:['Zonages naturels','Contractuels'],style:'poly',color:'#f9a825',fillOpacity:.35,checked:true,fields:[{f:'SITENAME',s:'Nom du site'},{f:'Surf_ha',s:'Surface en hectare'}],desc:'Zone Spéciale de Conservation (Directive Habitats).'},
+ {id:'Geologie',name:'Géologie',tab:['Sols et géologie'],style:'poly-colormap',colorBy:'DESCR',checked:false,fields:[{f:'DESCR',s:'Typologie géologique'}],desc:'Formations géologiques et lithologie.'},
+ {id:'Geologie_NivPert',name:'Niveaux de pertinence géologiques',tab:['Sols et géologie'],style:'poly-colormap',colorBy:'Niv_Pertin',colorMap:{'Faible':'#f0ffb5','Moyen':'#f4bb73','Fort':'#e53935'},defaultColor:'#eee',checked:false,fields:[{f:'Niv_Pertin',s:'Niveau de pertinence'}],desc:'Hiérarchisation de l\'intérêt géologique.'},
+ {id:'Faune_sites',name:'Faune',tab:['Inventaires et pointages','Faune'],style:'point',colorBy:'CLASSE',checked:false,fields:[{f:'Date',s:'Date de relevé'},{f:'total',s:'Nombre d\'individus'},{f:'comporteme',s:'Comportement'},{f:'CLASSE',s:'Classe'},{f:'ORDRE',s:'Ordre'},{f:'LB_NOM',s:'Nom scientifique'},{f:'LB_VERN',s:'Nom vernaculaire'},{f:'Enjeu te_1',s:'Enjeu territorial'},{f:'Num',s:'Site associé'}],desc:'Inventaires faunistiques ponctuels.'},
+ {id:'Faune_sites_300m',name:'Faune (300m)',tab:['Inventaires et pointages','Faune'],style:'point',colorBy:'CLASSE',checked:false,fields:[{f:'Date',s:'Date de relevé'},{f:'total',s:'Nombre d\'individus'},{f:'CLASSE',s:'Classe'},{f:'ORDRE',s:'Ordre'},{f:'LB_NOM',s:'Nom scientifique'},{f:'LB_VERN',s:'Nom vernaculaire'},{f:'Num',s:'Site associé'}],desc:'Inventaires faunistiques avec tampon de 300m.'},
+ {id:'Flore_sites',name:'Flore',tab:['Inventaires et pointages','Flore'],style:'poly',color:'#1b5e20',fillOpacity:.45,checked:false,fields:[{f:'taxon_id',s:'Nom scientifique'},{f:'enjeux',s:'Code enjeu'},{f:'Nom latin',s:'Nom latin'}],desc:'Inventaires floristiques avérés.'},
+ {id:'Flore_sites_sup',name:'Flore potentielle',tab:['Inventaires et pointages','Flore'],style:'poly',color:'#4caf50',fillOpacity:.6,checked:false,fields:[{f:'taxon_id',s:'Nom scientifique'},{f:'enjeux',s:'Code enjeu'},{f:'Nom latin',s:'Nom latin'}],desc:'Inventaires de flore potentielle.'},
+ {id:'Communes_2013-2028',name:'Communes PNR CMO (2013-2028)',tab:['Administratif'],style:'poly-outline',color:'#388e3c',weight:1.5,tooltip:'nom',checked:true,fields:[{f:'nom',s:'Nom de la commune'},{f:'Surf_ha',s:'Surface en hectare'},{f:'insee',s:'Code INSEE'}],desc:'Communes du périmètre actuel.'},
+ {id:'Communes_2028-2044',name:'Communes PNR CMO (2028-2044)',tab:['Administratif'],style:'poly-outline',color:'#888',weight:1.5,tooltip:'nom',checked:false,fields:[{f:'nom',s:'Nom de la commune'},{f:'Surf_ha',s:'Surface en hectare'},{f:'insee',s:'Code INSEE'}],desc:'Communes du futur périmètre (2028-2044).'},
+ {id:'Departements',name:'Départements',tab:['Administratif'],style:'poly-outline',color:'#ffd600',weight:2,tooltip:'NOM_DEPT',checked:true,fields:[{f:'NOM_DEPT',s:'Nom du département'}],desc:'Limites départementales.'},
+ {id:'Parcelles_sites',name:'Parcelles cadastrales',tab:['Administratif'],files:['Parcelles_sites','Parcelles_sites_1','Parcelles_sites_2'],style:'poly-outline',color:'#212121',weight:1,checked:false,fields:[{f:'commune',s:'Commune / Code postal'},{f:'section',s:'Section'},{f:'numero',s:'Numéro de parcelle'},{f:'Num',s:'Site associé'},{f:'Surf_ha',s:'Surface en hectare'},{f:'FLPPM_5924',s:'Catégorie foncière'},{f:'FLPPM_5927',s:'Propriétaire'}],desc:'Parcelles cadastrales associé aux sites.'},
+ {id:'Sections_cadastrales',name:'Sections cadastrales',tab:['Administratif'],style:'poly-outline',color:'#f44336',weight:2,fillOpacity:0.1,checked:false,fields:[{f:'commune',s:'Commune'},{f:'code',s:'Code section'}],desc:'Sections cadastrales du territoire.'},
+];
+
+const map=L.map('map',{center:[50.68,2.10],zoom:10,zoomControl:false});
+L.control.zoom({position:'topleft'}).addTo(map);
+L.control.scale({position:'bottomleft',imperial:false,maxWidth:180}).addTo(map);
+let curBM=null;
+function setBM(id){
+  const mapEl=document.getElementById('map');
+  if(curBM)map.removeLayer(curBM),curBM=null;
+  const r=RASTERS.find(x=>x.id===id);
+  if(!r||!r.url){mapEl.classList.add('no-bg');return}
+  mapEl.classList.remove('no-bg');
+  if(r.wms){
+    curBM=L.tileLayer.wms(r.url,{layers:r.layer,format:'image/png',transparent:true,attribution:r.attr,maxZoom:r.maxZoom});
+  }else{
+    curBM=L.tileLayer(r.url,{attribution:r.attr,maxZoom:r.maxZoom,subdomains:r.sub||'abc'});
+  }
+  curBM.addTo(map);
+}
+setBM('osm');
+function buildBM(){
+  const c=document.getElementById('bm');
+  c.innerHTML='<div class="bm-h">Fonds de carte</div>'+RASTERS.map((r,i)=>
+    `<label class="bm-o"><input type="radio" name="bm" value="${r.id}" ${i===0?'checked':''} onchange="setBM(this.value)"/><span class="bm-n">${r.name}<div class="bm-src">${r.attr}</div></span></label>`
+  ).join('');
+}
+function toggleBM(){const b=document.getElementById('bm');b.style.display=b.style.display==='block'?'none':'block'}
+function toggleFS(){
+  if(!document.fullscreenElement&&!document.webkitFullscreenElement){
+    const el=document.documentElement;
+    const fn=el.requestFullscreen||el.webkitRequestFullscreen;
+    if(fn)fn.call(el).catch(e=>console.warn('Fullscreen:',e));
+  }else{
+    const fn=document.exitFullscreen||document.webkitExitFullscreen;
+    if(fn)fn.call(document);
+  }
+}
+map.on('mousemove',e=>{document.getElementById('clat').textContent=`Lat : ${e.latlng.lat.toFixed(6)}`;document.getElementById('clng').textContent=`Lng : ${e.latlng.lng.toFixed(6)}`});
+
+function darken(hex,f){let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);r=Math.round(r*(1-f));g=Math.round(g*(1-f));b=Math.round(b*(1-f));return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function interpColors(cols,t){const n=cols.length-1,i=Math.min(Math.floor(t*n),n-1),u=t*n-i;const h2r=h=>parseInt(h.replace('#','').slice(0,2),16),h2g=h=>parseInt(h.replace('#','').slice(2,4),16),h2b=h=>parseInt(h.replace('#','').slice(4,6),16);const a=cols[i],b=cols[i+1]||cols[n];return '#'+[Math.round(h2r(a)+(h2r(b)-h2r(a))*u),Math.round(h2g(a)+(h2g(b)-h2g(a))*u),Math.round(h2b(a)+(h2b(b)-h2b(a))*u)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function hashColor(s){if(!s)return '#aaa';let h=0;for(let i=0;i<s.length;i++)h=s.charCodeAt(i)+((h<<5)-h);return `hsl(${Math.abs(h)%360},55%,60%)`}
+const CLASSE_COLORS={'Aves':'#e53935','Mammalia':'#8d6e63','Reptilia':'#689f38','Amphibia':'#26a69a','Insecta':'#fbc02d','Lepidoptera':'#ec407a','Odonata':'#42a5f5','Arachnida':'#7e57c2','Mollusca':'#78909c','Pisces':'#5c6bc0','Actinopterygii':'#5c6bc0'};
+
+const BLUE_PALETTE = ['#e3f2fd','#bbdefb','#90caf9','#64b5f6','#42a5f5','#2196f3','#1e88e5','#1976d2','#1565c0','#0d47a1'];
+function resolveBlueGradient(val) {
+  if(!val) return '#1976d2';
+  let h=0; for(let i=0;i<val.length;i++) h=val.charCodeAt(i)+((h<<5)-h);
+  return BLUE_PALETTE[Math.abs(h) % BLUE_PALETTE.length];
+}
+
+function resolveColorMap(colorMap,value,defaultColor){
+  if(value==null||value==='')return defaultColor||'#ccc';
+  if(colorMap[value])return colorMap[value];
+  const target=norm(value);
+  for(const k of Object.keys(colorMap)){if(norm(k)===target)return colorMap[k]}
+  for(const k of Object.keys(colorMap)){const nk=norm(k);if(nk.includes(target)||target.includes(nk))return colorMap[k]}
+  return defaultColor||'#ccc';
+}
+
+const geoDataStore={};
+async function fetchGeoJSON(fname){
+  try{const res=await fetch(`${BASE}${fname}.geojson`);if(!res.ok)throw new Error(`HTTP ${res.status}`);return await res.json()}
+  catch(e){console.warn(`[GeoJSON] ${fname}.geojson — ${e.message}`);return null}
+}
+async function loadAllForStats(){
+  const statLayers=[
+    'Sites_reperes_enjeux_max','Sites_reperes_300m',
+    'Densite_site_maille',
+    'Faune_sites','Faune_sites_300m','Flore_sites','Flore_sites_sup',
+    'ZNIEFF_I','ZNIEFF_II','ZPS','ZSC','RNN','RNR','ENS_59','ENS_EDEN62','Sites_CEN','Sites_CELRL',
+    'Parcelles_sites','Maillage_5x5km','Communes_2013-2028','Communes_2028-2044',
+    'Sections_cadastrales','Reservoirs_biodiv','Rbios','Localisations_sites'
+  ];
+  const promises=statLayers.map(async id=>{
+    const cfg=LAYERS.find(l=>l.id===id);
+    const files=cfg?(cfg.files||[id]):[id];
+    const datas=await Promise.all(files.map(f=>fetchGeoJSON(f)));
+    geoDataStore[id]=datas.filter(d=>d!==null);
+  });
+  await Promise.all(promises);
+}
+
+function pointInPolygon(pt,vs){
+  const x=pt[0],y=pt[1];
+  let inside=false;
+  for(let i=0,j=vs.length-1;i<vs.length;j=i++){
+    const xi=vs[i][0],yi=vs[i][1],xj=vs[j][0],yj=vs[j][1];
+    const intersect=((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi);
+    if(intersect)inside=!inside;
+  }
+  return inside;
+}
+function getCentroid(geometry){
+  if(!geometry)return null;
+  if(geometry.type==='Point')return geometry.coordinates;
+  if(geometry.type==='MultiPoint')return geometry.coordinates[0];
+  let coords=geometry.coordinates;
+  if(geometry.type==='MultiPolygon')coords=coords[0];
+  coords=coords[0]||coords;
+  let minx=Infinity,miny=Infinity,maxx=-Infinity,maxy=-Infinity;
+  coords.forEach(c=>{minx=Math.min(minx,c[0]);miny=Math.min(miny,c[1]);maxx=Math.max(maxx,c[0]);maxy=Math.max(maxy,c[1])});
+  return [(minx+maxx)/2,(miny+maxy)/2];
+}
+function findCommuneForSite(siteFeature,communesFeatures){
+  const c=getCentroid(siteFeature.geometry);
+  if(!c)return null;
+  for(const cf of communesFeatures){
+    if(!cf.geometry)continue;
+    if(cf.geometry.type==='Polygon'){
+      if(pointInPolygon(c,cf.geometry.coordinates[0]))return cf;
+    }else if(cf.geometry.type==='MultiPolygon'){
+      for(const poly of cf.geometry.coordinates){if(pointInPolygon(c,poly[0]))return cf}
+    }
+  }
+  return null;
+}
+function findCommuneForPoint(pt,communesFeatures){
+  if(!pt)return null;
+  for(const cf of communesFeatures){
+    if(!cf.geometry)continue;
+    if(cf.geometry.type==='Polygon'){
+      if(pointInPolygon(pt,cf.geometry.coordinates[0]))return cf;
+    }else if(cf.geometry.type==='MultiPolygon'){
+      for(const poly of cf.geometry.coordinates){if(pointInPolygon(pt,poly[0]))return cf}
+    }
+  }
+  return null;
+}
+
+let communesIndex=[];
+let searchHighlight=null;
+function buildCommunesIndex(){
+  communesIndex=[];
+  const features=getAllFeatures('Communes_2028-2044').length?getAllFeatures('Communes_2028-2044'):getAllFeatures('Communes_2013-2028');
+  features.forEach(f=>{
+    const nom=propNorm(f.properties,'nom')||propNorm(f.properties,'name')||propNorm(f.properties,'nomcom')||propNorm(f.properties,'Commune')||propNorm(f.properties,'NOM_COMM')||propNorm(f.properties,'NOM_COM');
+    if(!nom)return;
+    let layer;try{layer=L.geoJSON(f)}catch(e){return}
+    let bounds;try{bounds=layer.getBounds()}catch(e){return}
+    communesIndex.push({nom:nom,insee:propNorm(f.properties,'insee')||propNorm(f.properties,'INSEE_COM')||'',surf:propNorm(f.properties,'Surf_ha')||'',layer:layer,bounds:bounds,feature:f});
+  });
+  communesIndex.sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+}
+function searchCommunes(query){const q=query.trim().toLowerCase();if(!q)return [];return communesIndex.filter(c=>c.nom.toLowerCase().includes(q)).slice(0,20)}
+function renderSearchResults(results){
+  const el=document.getElementById('search-results');
+  if(results.length===0){el.innerHTML='<div class="sr-empty">Aucune commune trouvée</div>';el.style.display='block';return}
+  el.innerHTML=results.map((c,i)=>
+    `<div class="sr-item" onclick="selectCommune(${i})"><div class="sr-icon"></div><div><div class="sr-name">${c.nom}</div><div class="sr-meta">Code INSEE : ${c.insee||'—'} · ${c.surf?c.surf+' ha':'—'}</div></div></div>`
+  ).join('');
+  el.style.display='block';el._results=results;
+}
+function selectCommune(idx){
+  const results=document.getElementById('search-results')._results;
+  if(!results||!results[idx])return;
+  const c=results[idx];
+  map.fitBounds(c.bounds,{maxZoom:14});
+  if(searchHighlight)map.removeLayer(searchHighlight);
+  searchHighlight=L.geoJSON(c.feature,{style:{color:'#c62828',weight:3,fillColor:'#c62828',fillOpacity:.15,opacity:.9,dashArray:'8,4'}}).addTo(map);
+  document.getElementById('search-input').value=c.nom;
+  document.getElementById('search-results').style.display='none';
+}
+function initSearch(){
+  const input=document.getElementById('search-input');
+  const resultsEl=document.getElementById('search-results');
+  input.addEventListener('input',()=>{const q=input.value;if(q.trim().length<2){resultsEl.style.display='none';return}renderSearchResults(searchCommunes(q))});
+  input.addEventListener('focus',()=>{if(input.value.trim().length>=2)renderSearchResults(searchCommunes(input.value))});
+  document.addEventListener('click',e=>{if(!document.getElementById('sb').contains(e.target))resultsEl.style.display='none'});
+  input.addEventListener('keydown',e=>{if(e.key==='Escape'){resultsEl.style.display='none';input.blur()}if(e.key==='Enter'){const results=searchCommunes(input.value);if(results.length>0)selectCommune(0)}});
+}
+
+function countFeatures(id){return (geoDataStore[id]||[]).reduce((s,d)=>s+(d.features?d.features.length:0),0)}
+function getAllFeatures(id){return (geoDataStore[id]||[]).flatMap(d=>d.features||[])}
+function groupBy(features,field){const m={};features.forEach(f=>{const v=propNorm(f.properties,field);if(v!=null&&v!=='')m[v]=(m[v]||0)+1});return m}
+function groupBySum(features,field,sumField){const m={};features.forEach(f=>{const v=propNorm(f.properties,field);const raw=propNorm(f.properties,sumField);const s=parseFloat(raw)||0;if(v!=null&&v!=='')m[v]=(m[v]||0)+s});return m}
+function countUnique(features,field){const s=new Set();features.forEach(f=>{const v=propNorm(f.properties,field);if(v!=null&&v!=='')s.add(v)});return s.size}
+function fmtNum(n){return n.toLocaleString('fr-FR')}
+function groupEnjeux(features,field){
+  const cats={maj:0,tfort:0,fort:0,mod:0,faib:0,nul:0,nc:0};
+  features.forEach(f=>{
+    const v=propNorm(f.properties,field);
+    if(matchEnjeu(v,'maj'))cats.maj++;
+    else if(matchEnjeu(v,'tfort'))cats.tfort++;
+    else if(matchEnjeu(v,'fort'))cats.fort++;
+    else if(matchEnjeu(v,'mod'))cats.mod++;
+    else if(matchEnjeu(v,'faib'))cats.faib++;
+    else if(matchEnjeu(v,'nul'))cats.nul++;
+    else cats.nc++;
+  });
+  return cats;
+}
+const ENJ_LABELS={maj:'Majeur',tfort:'Très fort',fort:'Fort',mod:'Modéré',faib:'Faible',nul:'Nul/Non évalué',nc:'N/C'};
+const ENJ_COLORS={maj:'#770015',tfort:'#b10002',fort:'#ff0d00',mod:'#ffac00',faib:'#52e11b',nul:'#8af193',nc:'#e0e0e0'};
+function catsToData(cats){return ['maj','tfort','fort','mod','faib','nul','nc'].filter(k=>cats[k]>0).map(k=>({n:ENJ_LABELS[k],v:cats[k],c:ENJ_COLORS[k]}))}
+
+function buildDonutSVG(data,centerText,subText){
+  const total=data.reduce((s,d)=>s+d.v,0)||1;
+  const r=42,c=2*Math.PI*r;let offset=0;let circles='';
+  data.forEach(d=>{const len=(d.v/total)*c;const gap=c-len;circles+=`<circle cx="55" cy="55" r="${r}" fill="none" stroke="${d.c}" stroke-width="14" stroke-dasharray="${len.toFixed(2)} ${gap.toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 55 55)"/>`;offset+=len});
+  const fs=centerText.length>6?13:18;
+  return `<svg class="donut-svg" width="110" height="110" viewBox="0 0 110 110"><circle cx="55" cy="55" r="${r}" fill="none" stroke="var(--n2)" stroke-width="14"/>${circles}<text x="55" y="50" class="donut-center" style="font-size:${fs}px">${centerText}</text><text x="55" y="68" class="donut-sub">${subText}</text></svg>`;
+}
+function buildDonutLegend(data,rawValues){
+  const total=data.reduce((s,d)=>s+d.v,0)||1;
+  return `<div class="donut-legend">${data.map(d=>`<div class="dl"><span class="dc" style="background:${d.c}"></span><span>${d.n}</span><span class="dv">${rawValues?d.v:d.v+' ('+((d.v/total)*100).toFixed(1)+'%)'}</span></div>`).join('')}</div>`;
+}
+function buildBars(data,max,unit){return data.map(d=>`<div class="sbr"><div class="sbl"><span>${d.n}</span><span class="sv">${fmtNum(d.v)}${unit||' sites'}</span></div><div class="sbt"><div class="sbf" style="width:${(d.v/max*100).toFixed(1)}%;background:${d.c}"></div></div></div>`).join('')}
+function buildClickBars(data,max,unit,onClickFn){return data.map((d,i)=>`<div class="sbr clickable" onclick="${onClickFn(i)}"><div class="sbl"><span>${d.n}</span><span class="sv">${fmtNum(d.v)}${unit||''}</span></div><div class="sbt"><div class="sbf" style="width:${(d.v/max*100).toFixed(1)}%;background:${d.c}"></div></div></div>`).join('')}
+function buildRanking(data,maxVal){return data.map((d,i)=>`<div class="rank"><div class="rank-n${i<3?' top':''}">${i+1}</div><div style="flex:1"><div style="display:flex;justify-content:space-between"><span class="rank-name">${d.n}</span><span class="rank-val">${d.v} sites</span></div><div class="rank-bar"><div class="rank-bar-fill" style="width:${(d.v/maxVal*100).toFixed(0)}%;background:${d.c}"></div></div></div></div>`).join('')}
+function buildCmpTable(headers,rows){let html=`<thead><tr>${headers.map(h=>`<th${h.cls?` class="${h.cls}"`:''}>${h.l}</th>`).join('')}</tr></thead><tbody>`;rows.forEach(r=>{html+=`<tr>${r.map((c,i)=>`<td${i===r.length-1?' class="num"':''}>${c}</td>`).join('')}</tr>`});html+='</tbody>';return html}
+
+function renderDashboard(){
+  const sitesFeatures = getAllFeatures('Sites_reperes_enjeux_max');
+  
+  const uniqueSites = new Set();
+  const uniqueSitesFort = new Set();
+  
+  sitesFeatures.forEach(f => {
+    const num = propNorm(f.properties, 'Num') || propNorm(f.properties, 'Code_Site');
+    if (num) {
+      uniqueSites.add(num);
+      const v = String(propNorm(f.properties, 'Faune_Site') || '');
+      if (matchEnjeu(v, 'fort') || matchEnjeu(v, 'tfort') || matchEnjeu(v, 'maj')) {
+        uniqueSitesFort.add(num);
+      }
+    }
+  });
+
+  const nbSites = uniqueSites.size > 0 ? uniqueSites.size : countFeatures('Sites_reperes_enjeux_max');
+  const nbMailles = countFeatures('Maillage_5x5km');
+  
+  const fauneSiteFeatures = getAllFeatures('Faune_sites');
+  const fauneTampFeatures = getAllFeatures('Faune_sites_300m');
+  
+  const nbObsFauneSite = fauneSiteFeatures.length;
+  const nbObsFauneTamp = fauneTampFeatures.length;
+  const nbObsFaune = nbObsFauneSite + nbObsFauneTamp;
+  const nbClassesFaune = countUnique(fauneSiteFeatures, 'CLASSE');
+  
+  const floreFeatures = getAllFeatures('Flore_sites');
+  const florePotFeatures = getAllFeatures('Flore_sites_sup');
+  
+  const nbTaxonsFlore = countUnique(floreFeatures, 'taxon_id') || floreFeatures.length;
+  const nbTaxonsFlorePot = countUnique(florePotFeatures, 'taxon_id') || florePotFeatures.length;
+
+  const pctEnjFort = nbSites > 0 ? Math.round((uniqueSitesFort.size / nbSites) * 100) : 0;
+
+  document.getElementById('kpi-grid').innerHTML = `
+    <div class="kpi"><button class="kpi-info" onclick="showStatInfo('kpi-sites')">i</button><div class="kpi-val">${fmtNum(nbSites)}</div><div class="kpi-lbl">Sites repérés</div><div class="kpi-sub">sur ${fmtNum(nbMailles)} mailles 5×5 km</div></div>
+    <div class="kpi k-info"><button class="kpi-info" onclick="showStatInfo('kpi-faune')">i</button><div class="kpi-val">${fmtNum(nbObsFaune)}</div><div class="kpi-lbl">Observations faune</div><div class="kpi-sub">${nbClassesFaune} classes · site ${fmtNum(nbObsFauneSite)} / tamp ${fmtNum(nbObsFauneTamp)}</div></div>
+    <div class="kpi k-warn"><button class="kpi-info" onclick="showStatInfo('kpi-flore')">i</button><div class="kpi-val">${fmtNum(nbTaxonsFlore+nbTaxonsFlorePot)}</div><div class="kpi-lbl">Taxons flore (avérés + potentiels)</div><div class="kpi-sub">${nbTaxonsFlore} avérés · ${nbTaxonsFlorePot} potentiels</div></div>
+    <div class="kpi k-err"><button class="kpi-info" onclick="showStatInfo('kpi-enjeu')">i</button><div class="kpi-val">${pctEnjFort}%</div><div class="kpi-lbl">Sites en enjeu fort+</div><div class="kpi-sub">faune territorialisé (site)</div></div>`;
+
+  const enjFauneSiteCats = groupEnjeux(sitesFeatures, 'Faune_Site');
+  const enjFauneTampCats = groupEnjeux(sitesFeatures, 'Faune_Tamp');
+  
+  document.getElementById('donut-faune-wrap').innerHTML =
+    buildDonutSVG(catsToData(enjFauneSiteCats), fmtNum(nbSites), 'sites') + buildDonutLegend(catsToData(enjFauneSiteCats));
+  document.getElementById('donut-faune-tamp-wrap').innerHTML =
+    buildDonutSVG(catsToData(enjFauneTampCats), fmtNum(nbSites), 'sites') + buildDonutLegend(catsToData(enjFauneTampCats));
+
+  const milieuMap = {};
+  const milieuSurfMap = {};
+  const siteSeenMilieu = new Set();
+  sitesFeatures.forEach(f => {
+    const num = propNorm(f.properties, 'Num') || propNorm(f.properties, 'Code_Site');
+    if (num && siteSeenMilieu.has(String(num))) return;
+    if (num) siteSeenMilieu.add(String(num));
+    const v = propNorm(f.properties, 'Type');
+    const surf = parseFloat(propNorm(f.properties, 'Surface') || propNorm(f.properties, 'Surf_ha') || 0);
+    let matched = null;
+    if (v) {
+      const nv = norm(v);
+      for (const k of MILIEU_KEYS) {
+        if (norm(k) === nv || norm(k).includes(nv) || nv.includes(norm(k))) { matched = k; break; }
+      }
+    }
+    if (matched) {
+      const keyNormalized = (matched === 'Lande' || matched === 'Landes') ? 'Landes' : (matched === 'Coteau calcaire' || matched === 'Coteaux calcaires') ? 'Coteaux calcaires' : matched;
+      milieuMap[keyNormalized] = (milieuMap[keyNormalized] || 0) + 1;
+      milieuSurfMap[keyNormalized] = (milieuSurfMap[keyNormalized] || 0) + surf;
+    } else if (v) {
+      milieuMap[v] = (milieuMap[v] || 0) + 1;
+      milieuSurfMap[v] = (milieuSurfMap[v] || 0) + surf;
+    }
+  });
+  const milieuData = Object.entries(milieuMap).map(([k, v]) => ({ n: k, v, surf: milieuSurfMap[k] || 0, c: MILIEU_COLORS[k] || hashColor(k) })).sort((a, b) => b.v - a.v);
+  document.getElementById('donut-milieu-wrap').innerHTML =
+    buildDonutSVG(milieuData, String(milieuData.length), 'types') +
+    `<div class="donut-legend">${milieuData.map(d=>`<div class="dl"><span class="dc" style="background:${d.c}"></span><span>${d.n}</span><span class="dv">${d.v} sites${d.surf>0?' · '+d.surf.toFixed(1)+' ha':''}</span></div>`).join('')}</div>`;
+
+  const zonageDefs = [
+    { id: 'ZNIEFF_I', label: 'ZNIEFF I', color: '#f06292' },
+    { id: 'ZNIEFF_II', label: 'ZNIEFF II', color: '#ffb300' },
+    { id: 'ZPS', label: 'Natura 2000 (ZPS)', color: '#558b2f' },
+    { id: 'ZSC', label: 'Natura 2000 (ZSC)', color: '#f9a825' },
+    { id: 'RNN', label: 'RNN', color: '#1b5e20' },
+    { id: 'RNR', label: 'RNR', color: '#4caf50' },
+    { id: 'ENS_59', label: 'ENS (59)', color: '#9e9e9e' },
+    { id: 'ENS_EDEN62', label: 'ENS (62)', color: '#ce93d8' },
+    { id: 'Sites_CEN', label: 'Sites CEN', color: '#ffb74d' },
+    { id: 'Sites_CELRL', label: 'Sites CELRL', color: '#b39ddb' },
+  ];
+  const nbSitesTotal = nbSites || 1;
+  const zonageRows = zonageDefs.map(z => {
+    const cnt = countFeatures(z.id);
+    const pct = Math.round(cnt / nbSitesTotal * 100);
+    return [`<span class="cmp-bar" style="width:${Math.max(pct, 4)}px;background:${z.color}"></span>${z.label}`, `${cnt} entités`, `${pct}%`];
+  }).filter(r => r[1] !== '0 entités');
+  document.getElementById('cmp-zonages').innerHTML = buildCmpTable(
+    [{ l: 'Zonage (échelle PNR)' }, { l: 'Entités' }, { l: 'Recouvrement', cls: 'num' }], zonageRows);
+
+  const parcelleFeatures = getAllFeatures('Parcelles_sites');
+  const foncierSurfMap = groupBySum(parcelleFeatures, 'FLPPM_5924', 'Surf_ha');
+  const FONCIER_PALETTE = ['#90a4ae', '#4db6ac', '#ffcc80', '#e57373', '#ba68c8', '#7986cb', '#4fc3f7', '#aed581', '#ffb74d', '#a1887f', '#f06292', '#64b5f6', '#81c784', '#ffd54f', '#4dd0e1', '#9575cd'];
+  const foncierSorted = Object.entries(foncierSurfMap).sort((a, b) => a[0].localeCompare(b[0], 'fr'));
+  const foncierData = foncierSorted.map(([k, v], i) => ({ n: k, v, c: FONCIER_PALETTE[i % FONCIER_PALETTE.length] }));
+  const foncierTotal = foncierData.reduce((s, d) => s + d.v, 0) || 1;
+  document.getElementById('donut-foncier-wrap').innerHTML =
+    buildDonutSVG(foncierData, fmtNum(Math.round(foncierTotal)) + ' ha', 'surface') +
+    `<div class="donut-legend">${foncierData.map(d => `<div class="dl"><span class="dc" style="background:${d.c}"></span><span>${d.n}</span><span class="dv">${d.v.toFixed(2)} ha</span></div>`).join('')}</div>`;
+
+  const communesFeatures = getAllFeatures('Communes_2028-2044').length ? getAllFeatures('Communes_2028-2044') : getAllFeatures('Communes_2013-2028');
+  const locFeatures = getAllFeatures('Localisations_sites');
+  const communeCount = {};
+  if (locFeatures.length > 0) {
+    locFeatures.forEach(f => {
+      if (!f.geometry || f.geometry.type !== 'Point') return;
+      const pt = f.geometry.coordinates;
+      const cf = findCommuneForPoint(pt, communesFeatures);
+      const nom = cf ? propNorm(cf.properties, 'nom') : null;
+      if (nom) communeCount[nom] = (communeCount[nom] || 0) + 1;
+    });
+  } else {
+    sitesFeatures.forEach(f => {
+      const cf = findCommuneForSite(f, communesFeatures);
+      const nom = cf ? propNorm(cf.properties, 'nom') : null;
+      if (nom) communeCount[nom] = (communeCount[nom] || 0) + 1;
+    });
+  }
+  const rankData = Object.entries(communeCount).map(([k, v]) => ({ n: k, v })).sort((a, b) => b.v - a.v).slice(0, 5);
+  const rankColors = ['#246b48', '#2d8556', '#3da06b', '#5cb884', '#8fd0a8'];
+  const rankMax = rankData.length > 0 ? rankData[0].v : 1;
+  document.getElementById('rank-communes').innerHTML = buildRanking(rankData.map((d, i) => ({ ...d, c: rankColors[i] })), rankMax);
+
+  const classeMap = groupBy(fauneSiteFeatures, 'CLASSE');
+  const classeData = Object.entries(classeMap).map(([k, v]) => ({ n: k, v: Math.round(v), c: CLASSE_COLORS[k] || hashColor(k) })).sort((a, b) => b.v - a.v);
+  const classeMax = Math.max(...classeData.map(d => d.v), 1);
+  document.getElementById('ch-classes').innerHTML = buildClickBars(classeData, classeMax, ' obs.', i => `drillFaune('site',${i})`);
+
+  const classeTampMap = groupBy(fauneTampFeatures, 'CLASSE');
+  const classeTampData = Object.entries(classeTampMap).map(([k, v]) => ({ n: k, v: Math.round(v), c: CLASSE_COLORS[k] || hashColor(k) })).sort((a, b) => b.v - a.v);
+  const classeTampMax = Math.max(...classeTampData.map(d => d.v), 1);
+  document.getElementById('ch-classes-tamp').innerHTML = buildClickBars(classeTampData, classeTampMax, ' obs.', i => `drillFaune('tamp',${i})`);
+
+  drillFloreReset('site');
+  drillFloreReset('pote');
+  
+  const enjFloreSiteCats = groupEnjeux(sitesFeatures, 'Flore_Site');
+  const enjFlorePoteCats = groupEnjeux(sitesFeatures, 'Flore_Pote');
+  
+  const elFloreSiteWrap = document.getElementById('donut-flore-site-wrap');
+  if (elFloreSiteWrap) {
+    elFloreSiteWrap.innerHTML =
+      buildDonutSVG(catsToData(enjFloreSiteCats), fmtNum(nbSites), 'sites') + buildDonutLegend(catsToData(enjFloreSiteCats));
+  }
+
+  const elFlorePoteWrap = document.getElementById('donut-flore-pote-wrap');
+  if (elFlorePoteWrap) {
+    elFlorePoteWrap.innerHTML =
+      buildDonutSVG(catsToData(enjFlorePoteCats), fmtNum(nbSites), 'sites') + buildDonutLegend(catsToData(enjFlorePoteCats));
+  }
+  
+  renderFloreBySite();
+}
+
+const fauneDrillState={site:{level:0,classe:null,ordre:null},tamp:{level:0,classe:null,ordre:null}};
+
+function drillFaune(source,idx){
+  const features=source==='site'?getAllFeatures('Faune_sites'):getAllFeatures('Faune_sites_300m');
+  const state=fauneDrillState[source];
+  const elId=source==='site'?'ch-classes':'ch-classes-tamp';
+  const wrapId=source==='site'?null:'ch-classes-tamp-wrap';
+  if(state.level===0){
+    const classeMap=groupBy(features,'CLASSE');
+    const classeData=Object.entries(classeMap).map(([k,v])=>({n:k,v:Math.round(v),c:CLASSE_COLORS[k]||hashColor(k)})).sort((a,b)=>b.v-a.v);
+    const clicked=classeData[idx];
+    if(!clicked)return;
+    state.level=1;state.classe=clicked.n;
+    const subFeatures=features.filter(f=>propNorm(f.properties,'CLASSE')===clicked.n);
+    const ordreMap=groupBy(subFeatures,'ORDRE');
+    const ordreData=Object.entries(ordreMap).map(([k,v])=>({n:k||'Non renseigné',v:Math.round(v),c:hashColor(k||'NR')})).sort((a,b)=>b.v-a.v);
+    const ordreMax=Math.max(...ordreData.map(d=>d.v),1);
+    const bc=`<div class="drill-breadcrumb"><span class="drill-back" onclick="drillFauneBack('${source}')">‹ Retour</span><span class="bc-item" onclick="drillFauneReset('${source}')">Classes</span><span class="bc-sep">›</span><span class="bc-current">${clicked.n}</span></div>`;
+    document.getElementById(elId).innerHTML=bc+buildClickBars(ordreData,ordreMax,' obs.',i=>`drillFauneOrdre('${source}',${i})`);
+  }
+}
+
+function drillFauneOrdre(source,idx){
+  const features=source==='site'?getAllFeatures('Faune_sites'):getAllFeatures('Faune_sites_300m');
+  const state=fauneDrillState[source];
+  if(state.level!==1||!state.classe)return;
+  const subFeatures=features.filter(f=>propNorm(f.properties,'CLASSE')===state.classe);
+  const ordreMap=groupBy(subFeatures,'ORDRE');
+  const ordreData=Object.entries(ordreMap).map(([k,v])=>({n:k||'Non renseigné',v:Math.round(v),c:hashColor(k||'NR')})).sort((a,b)=>b.v-a.v);
+  const clicked=ordreData[idx];
+  if(!clicked)return;
+  state.level=2;state.ordre=clicked.n;
+  const ordreKey=clicked.n==='Non renseigné'?null:clicked.n;
+  const subSub=features.filter(f=>propNorm(f.properties,'CLASSE')===state.classe&&(propNorm(f.properties,'ORDRE')||null)===ordreKey);
+  const nomMap=groupBy(subSub,'LB_NOM');
+  const nomData=Object.entries(nomMap).map(([k,v])=>({n:k||'Non renseigné',v:Math.round(v),c:hashColor(k||'NR')})).sort((a,b)=>b.v-a.v);
+  const nomMax=Math.max(...nomData.map(d=>d.v),1);
+  const elId=source==='site'?'ch-classes':'ch-classes-tamp';
+  const bc=`<div class="drill-breadcrumb"><span class="drill-back" onclick="drillFauneBack('${source}')">‹ Retour</span><span class="bc-item" onclick="drillFauneReset('${source}')">Classes</span><span class="bc-sep">›</span><span class="bc-item" onclick="drillFauneBackToClasse('${source}')">${state.classe}</span><span class="bc-sep">›</span><span class="bc-current">${clicked.n}</span></div>`;
+  document.getElementById(elId).innerHTML=bc+buildBars(nomData,nomMax,' obs.');
+}
+
+function drillFauneBack(source){
+  const state=fauneDrillState[source];
+  if(state.level===2){state.level=1;state.ordre=null;drillFauneBackToClasse(source)}
+  else if(state.level===1){drillFauneReset(source)}
+}
+
+function drillFauneBackToClasse(source){
+  const features=source==='site'?getAllFeatures('Faune_sites'):getAllFeatures('Faune_sites_300m');
+  const state=fauneDrillState[source];
+  state.level=1;state.ordre=null;
+  const subFeatures=features.filter(f=>propNorm(f.properties,'CLASSE')===state.classe);
+  const ordreMap=groupBy(subFeatures,'ORDRE');
+  const ordreData=Object.entries(ordreMap).map(([k,v])=>({n:k||'Non renseigné',v:Math.round(v),c:hashColor(k||'NR')})).sort((a,b)=>b.v-a.v);
+  const ordreMax=Math.max(...ordreData.map(d=>d.v),1);
+  const elId=source==='site'?'ch-classes':'ch-classes-tamp';
+  const bc=`<div class="drill-breadcrumb"><span class="drill-back" onclick="drillFauneBack('${source}')">‹ Retour</span><span class="bc-item" onclick="drillFauneReset('${source}')">Classes</span><span class="bc-sep">›</span><span class="bc-current">${state.classe}</span></div>`;
+  document.getElementById(elId).innerHTML=bc+buildClickBars(ordreData,ordreMax,' obs.',i=>`drillFauneOrdre('${source}',${i})`);
+}
+
+function drillFauneReset(source){
+  const features=source==='site'?getAllFeatures('Faune_sites'):getAllFeatures('Faune_sites_300m');
+  const state=fauneDrillState[source];
+  state.level=0;state.classe=null;state.ordre=null;
+  const classeMap=groupBy(features,'CLASSE');
+  const classeData=Object.entries(classeMap).map(([k,v])=>({n:k,v:Math.round(v),c:CLASSE_COLORS[k]||hashColor(k)})).sort((a,b)=>b.v-a.v);
+  const classeMax=Math.max(...classeData.map(d=>d.v),1);
+  const elId=source==='site'?'ch-classes':'ch-classes-tamp';
+  document.getElementById(elId).innerHTML=buildClickBars(classeData,classeMax,' obs.',i=>`drillFaune('${source}',${i})`);
+}
+
+const floreDrillState = {
+  site: { level: 0, taxon: null },
+  pote: { level: 0, taxon: null }
+};
+
+function drillFlore(source, idx) {
+  const features = source === 'site' ? getAllFeatures('Flore_sites') : getAllFeatures('Flore_sites_sup');
+  const state = floreDrillState[source];
+  const elId = source === 'site' ? 'ch-flore-classes' : 'ch-flore-pot-classes';
+
+  if (state.level === 0) {
+    const taxonMap = groupBy(features, 'taxon_id');
+    const taxonData = Object.entries(taxonMap).map(([k, v]) => ({ n: k, raw: k, v: Math.round(v), c: hashColor(k) })).sort((a, b) => b.v - a.v);
+    const clicked = taxonData[idx];
+    if (!clicked) return;
+
+    state.level = 1;
+    state.taxon = clicked.raw;
+
+    const subFeatures = features.filter(f => String(propNorm(f.properties, 'taxon_id')) === String(clicked.raw));
+    const nomMap = groupBy(subFeatures, 'Nom latin');
+    const nomData = Object.entries(nomMap).map(([k, v]) => ({ n: k || 'Non renseigné', v: Math.round(v), c: hashColor(k || 'NR') })).sort((a, b) => b.v - a.v);
+    const nomMax = Math.max(...nomData.map(d => d.v), 1);
+
+    const bc = `<div class="drill-breadcrumb"><span class="drill-back" onclick="drillFloreReset('${source}')">‹ Retour</span><span class="bc-item" onclick="drillFloreReset('${source}')">Taxons</span><span class="bc-sep">›</span><span class="bc-current">${clicked.raw}</span></div>`;
+    document.getElementById(elId).innerHTML = bc + buildBars(nomData, nomMax, ' obs.');
+  }
+}
+
+function drillFloreReset(source) {
+  const features = source === 'site' ? getAllFeatures('Flore_sites') : getAllFeatures('Flore_sites_sup');
+  const state = floreDrillState[source];
+  state.level = 0;
+  state.taxon = null;
+
+  const elId = source === 'site' ? 'ch-flore-classes' : 'ch-flore-pot-classes';
+  
+  const fieldToUse = features.some(f => propNorm(f.properties, 'taxon_id') != null) ? 'taxon_id' : (features.some(f => propNorm(f.properties, 'Nom latin') != null) ? 'Nom latin' : 'num');
+
+  const taxonMap = groupBy(features, fieldToUse);
+  const taxonData = Object.entries(taxonMap).map(([k, v]) => ({ n: k, raw: k, v: Math.round(v), c: hashColor(k) })).sort((a, b) => b.v - a.v);
+  const taxonMax = Math.max(...taxonData.map(d => d.v), 1);
+
+  if (taxonData.length === 0) {
+    document.getElementById(elId).innerHTML = '<p class="dt">Aucune donnée disponible pour ce graphique.</p>';
+    return;
+  }
+
+  document.getElementById(elId).innerHTML = buildClickBars(taxonData, taxonMax, ' obs.', i => `drillFlore('${source}',${i})`);
+}
+
+function renderFloreBySite(){const el=document.getElementById('flore-by-site');if(el)el.innerHTML=''}
+
+function toggleStatSection(hdr, event){
+  if(event && (event.target.classList.contains('si') || event.target.closest('.si'))) {
+    return;
+  }
+  const body = hdr.nextElementSibling;
+  const ar = hdr.querySelector('.ar');
+  const isOpen = body.classList.toggle('op');
+  if(ar) ar.classList.toggle('op', isOpen);
+}
+
+const STAT_INFOS={
+  'overview':{
+    title:"Vue d'ensemble — KPI",
+    sub:"Méthode de calcul des 4 indicateurs clés",
+    body:`<h3>Sites repérés</h3><p>Comptage du nombre total d'entités (polygones) de la couche <code>Sites repérés</code> (fichiers <code>Sites_reperes_enjeux_max</code>). Le dénominateur « mailles 5×5 km » provient du comptage des entités de la couche <code>Maillage_5x5km</code>.</p><h3>Individus faune observés</h3><p>Somme du champ <code>total</code> (nombre d'individus) sur les couches <code>Faune</code> (<code>Faune_sites</code>) et <code>Faune (300m)</code> (<code>Faune_sites_300m</code>). Le sous-texte détaillé la répartition site / tampon. Le nombre de « classes taxonomiques » correspond au décompte des valeurs uniques du champ <code>CLASSE</code> de la couche <code>Faune_sites</code>.</p><h3>Taxons flore (avérés + potentiels)</h3><p>Somme des décomptes de valeurs uniques du champ <code>taxon_id</code> de la couche <code>Flore</code> (<code>Flore_sites</code>) et de la couche <code>Flore potentielle</code> (<code>Flore_sites_sup</code>).</p><h3>Sites en enjeu fort+</h3><p>Pourcentage de sites de la couche <code>Sites repérés</code> dont le champ <code>Faune_Site</code> correspond à « Fort », « Très fort » ou « Majeur ».</p>`
+  },
+  'enjeux-faune':{
+    title:"Enjeux faune par niveau",
+    sub:"Répartition des enjeux faune (site & tampon 300m)",
+    body:`<h3>Par site</h3><p>Comptage et répartition des sites selon le champ <code>Faune_Site</code> de la couche <code>Sites repérés</code> (<code>Sites_reperes_enjeux_max</code>). Chaque valeur est classée en 7 catégories : Majeur, Très fort, Fort, Modéré, Faible, Nul/Non évalué, N/C.</p><h3>Par tampon 300 m</h3><p>Même comptage mais basé sur le champ <code>Faune_Tamp</code> (enjeu maximum attribué au site en fonction de la faune située dans le site et dans un tampon alentour de 300 mètres) de la même couche <code>Sites repérés</code>.</p>`
+  },
+  'enjeux-flore':{
+    title:"Enjeux flore par niveau",
+    sub:"Répartition des enjeux flore (site & potentielle)",
+    body:`<h3>Par site (Flore_Site)</h3><p>Comptage et répartition des sites selon le champ <code>Flore_Site</code> de la couche <code>Sites repérés</code>.</p><h3>Flore potentielle (Flore_Pote)</h3><p>Répartition basée sur le champ <code>Flore_Pote</code> (flore potentielle) de la même couche <code>Sites repérés</code>.</p>`
+  },
+  'milieu':{
+    title:"Répartition par type de milieu",
+    sub:"Comptage des sites par typologie de milieu",
+    body:`<p>Comptage des sites selon le champ <code>Type</code> de la couche <code>Sites repérés</code> (<code>Sites_reperes_enjeux_max</code>). Les valeurs sont normalisées et regroupées selon les types définis : Coteaux calcaires, Milieux littoraux, Landes, Prairies marnicoles. Chaque type est représenté par une couleur fixe issue de la symbologie de la couche. La surface totale (en ha) est également affichée pour chaque type.</p>`
+  },
+  'zonages':{
+    title:"Recouvrement des zonages naturels",
+    sub:"Rapport entre les zonages et les sites repérés",
+    body:`<p>Pour chaque couche de zonage (ZNIEFF I, ZNIEFF II, ZPS, ZSC, RNN, RNR, ENS 59, ENS 62, Sites CEN, Sites CELRL), le tableau affiche :</p><ul><li><strong>Entités</strong> : nombre de polygones de la couche (comptage brut des entités).</li><li><strong>Recouvrement</strong> : rapport entre le nombre d'entités du zonage et le nombre total de sites de la couche <code>Sites repérés</code>, exprimé en pourcentage.</li></ul><p>Ces valeurs sont à l'échelle du PNR et n'indiquent pas un recouvrement spatial géométrique strict, mais un rapport d'ordre de grandeur.</p>`
+  },
+  'foncier':{
+    title:"Statut foncier des parcelles",
+    sub:"Répartition des catégories foncières",
+    body:`<p>Répartition basée sur le champ <code>FLPPM_5924</code> (catégorie foncière) de la couche <code>Parcelles cadastrales</code> (<code>Parcelles_sites</code>). La surface totale (en ha) est affichée au centre du graphique, et la surface par catégorie est indiquée dans la légende.</p>`
+  },
+  'communes':{
+    title:"Top 5 communes — nombre de sites",
+    sub:"Croisement spatial points / communes (2028-2044)",
+    body:`<p>Pour chaque point de la couche <code>Localisation des sites</code> (<code>Localisations_sites</code>), un test d'inclusion spatiale (point dans le polygone) est effectué contre les polygones de la couche <code>Communes PNR CMO (2028-2044)</code> (<code>Communes_2028-2044</code>). Si cette couche est vide, la couche <code>Communes_2013-2028</code> est utilisée comme repli. Chaque point est attribué à la commune qui le contient. Les 5 communes avec le plus de points sont affichées.</p>`
+  },
+  'classes':{
+    title:"Observations faune par classe",
+    sub:"Somme des individus par classe taxonomique (site & tampon 300m)",
+    body:`<p>Somme des individus (champ <code>total</code>) regroupés par <code>CLASSE</code> depuis les deux couches :</p><ul><li><strong>Site</strong> : couche <code>Faune</code> (<code>Faune_sites</code>) — observations sur l'emprise stricte des sites.</li><li><strong>Tampon 300 m</strong> : couche <code>Faune (300m)</code> (<code>Faune_sites_300m</code>) — observations dans un tampon de 300 m autour du site.</li></ul><p><strong>Niveau de détail progressif</strong> : cliquez sur une classe pour afficher la répartition par <code>ORDRE</code>, puis cliquez sur un ordre pour afficher le détail par <code>LB_NOM</code> (nom scientifique). Utilisez « ‹ Retour » pour revenir au niveau supérieur.</p>`
+  },
+  'flore-classes':{
+    title:"Observations flore par taxon",
+    sub:"Répartition taxonomique",
+    body:`<p>Somme des observations floristiques sur l'emprise stricte des sites, regroupées par taxon (le champ <code>taxon_id</code> correspond directement au nom de l'espèce).</p>`
+  },
+  
+  'kpi-sites':{title:"Sites repérés",sub:"Indicateur KPI — Vue d'ensemble",body:`<p>Nombre total d'entités (polygones) de la couche <code>Sites repérés</code> (fichiers <code>Sites_reperes_enjeux_max</code>). Le dénominateur « mailles 5×5 km » est le nombre d'entités de la couche <code>Maillage_5x5km</code>.</p>`},
+  'kpi-faune':{title:"Individus faune observés",sub:"Indicateur KPI — Vue d'ensemble",body:`<p>Somme du champ <code>total</code> (nombre d'individus) sur les couches <code>Faune_sites</code> (site) et <code>Faune_sites_300m</code> (tampon 300m). Le sous-texte détaillé la répartition site / tampon. Le nombre de « classes taxonomiques » est le décompte des valeurs uniques du champ <code>CLASSE</code> de la couche <code>Faune_sites</code>.</p>`},
+  'kpi-flore':{title:"Taxons flore (avérés + potentiels)",sub:"Indicateur KPI — Vue d'ensemble",body:`<p>Somme des décomptes de valeurs uniques du champ <code>taxon_id</code> de la couche <code>Flore</code> (<code>Flore_sites</code>) et de la couche <code>Flore potentielle</code> (<code>Flore_sites_sup</code>).</p>`},
+  'kpi-enjeu':{title:"Sites en enjeu fort+",sub:"Indicateur KPI — Vue d'ensemble",body:`<p>Pourcentage de sites de la couche <code>Sites repérés</code> dont le champ <code>Faune_Site</code> correspond à « Fort », « Très fort » ou « Majeur ».</p>`}
+};
+function showStatInfo(key){
+  const info=STAT_INFOS[key];if(!info)return;
+  document.getElementById('mtt').textContent=info.title;
+  document.getElementById('mts').textContent=info.sub;
+  document.getElementById('mc2').innerHTML=info.body;
+  document.getElementById('mo').classList.add('op');
+}
+
+const leafletLayers={};
+function getStyle(cfg,props){
+  const s=cfg.style;
+  if(s==='line')return{color:cfg.color||'#555',weight:cfg.weight||1.5,opacity:cfg.opacity||.8};
+  if(s==='poly')return{color:darken(cfg.color||'#555',.3),weight:1,fillColor:cfg.color||'#aaa',fillOpacity:cfg.fillOpacity||.4,opacity:.8};
+  if(s==='poly-outline')return{color:cfg.color||'#555',weight:cfg.weight||1.5,fillOpacity:cfg.fillOpacity||0,opacity:.9};
+  if(s==='poly-hatch')return{color:cfg.color||'#f44336',weight:1,fillColor:cfg.color||'#f44336',fillOpacity:.12,opacity:.85,dashArray:'6,4'};
+  if(s==='poly-colormap'){
+    const v=propNorm(props,cfg.colorBy);
+    let c;
+    if(cfg.blueGradientMode){c=resolveBlueGradient(v)}
+    else if(cfg.colorMap){c=resolveColorMap(cfg.colorMap,v,cfg.defaultColor)}
+    else if(cfg.colorBy==='CLASSE'&&CLASSE_COLORS[v])c=CLASSE_COLORS[v];
+    else if(cfg.colorBy==='DESCR')c=hashColor(v);
+    else c=cfg.defaultColor||'#ccc';
+    let fillOp = cfg.blueGradientMode ? 0.7 : 0.5;
+    return{color:c==='#ffffff'?'#aaa':darken(c,.3),weight:1,fillColor:c,fillOpacity:fillOp,opacity:.9};
+  }
+  if(s==='poly-grad'){
+    const v=parseFloat(propNorm(props,cfg.colorBy))||0;
+    const max=cfg._gradMax||10;
+    const t=Math.min(v/max,1);
+    const grad=cfg.gradColors||['#ffffff','#e53935'];
+    const c=interpColors(grad,t);
+    return{color:darken(c,.3),weight:1,fillColor:c,fillOpacity:.55,opacity:.9}
+  }
+  if(s==='point')return{};
+  return{color:'#555',weight:1,fillOpacity:.3};
+}
+function buildPopup(cfg,props){
+  let rows='';
+  cfg.fields.forEach(fd=>{const v=propNorm(props,fd.f);if(v!=null&&v!=='')rows+=`<div class="pr"><span class="pl">${fd.s}</span><span class="pv">${v}</span></div>`});
+  let badge='';
+  if(cfg.colorBy){
+    const bv=propNorm(props,cfg.colorBy);
+    if(bv){
+      let bc;
+      if(cfg.blueGradientMode)bc=resolveBlueGradient(bv);
+      else if(cfg.colorMap)bc=resolveColorMap(cfg.colorMap,bv,cfg.defaultColor);
+      else bc=hashColor(bv);
+      badge=`<span class="pb" style="background:${bc};color:#333;border:1px solid rgba(0,0,0,0.1)">${bv}</span>`;
+    }
+  }
+  return `<div class="pp"><div class="pt">${cfg.name}</div>${badge}${rows}</div>`;
+}
+function attachTooltip(cfg,lyr,props){
+  if(!cfg.tooltip)return;
+  const label=propNorm(props,cfg.tooltip);
+  if(label)lyr.bindTooltip(String(label),{direction:'top',sticky:false,opacity:1});
+}
+async function loadLayer(cfg){
+  if(leafletLayers[cfg.id])return;
+  leafletLayers[cfg.id]=[];
+  const files=cfg.files||[cfg.id];
+  if(cfg.style==='poly-grad')cfg._gradMax=1;
+  for(const fname of files){
+    let data;
+    try{const res=await fetch(`${BASE}${fname}.geojson`);if(!res.ok)throw new Error(`HTTP ${res.status}`);data=await res.json()}
+    catch(e){console.warn(`[GeoJSON] ${fname}.geojson — ${e.message}`);continue}
+    if(cfg.style==='poly-grad'){data.features?.forEach(f=>{const v=parseFloat(propNorm(f.properties,cfg.colorBy))||0;if(v>cfg._gradMax)cfg._gradMax=v})}
+    const lyr=L.geoJSON(data,{
+      style:f=>getStyle(cfg,f?.properties||{}),
+      pointToLayer:(f,ll)=>{const c=cfg.style==='point'?(cfg.colorBy?(cfg.colorMap?.[propNorm(f.properties,cfg.colorBy)]||CLASSE_COLORS[propNorm(f.properties,cfg.colorBy)]||hashColor(propNorm(f.properties,cfg.colorBy))):cfg.color||'#e53935'):'#e53935';return L.circleMarker(ll,{radius:5,fillColor:c,color:'#fff',weight:1.5,fillOpacity:.9})},
+      onEachFeature:(f,lyr)=>{
+        const p=f.properties||{};
+        lyr.bindPopup(buildPopup(cfg,p),{maxWidth:320});
+        attachTooltip(cfg,lyr,p);
+        lyr.on('click',()=>updateRightPanel(cfg,p,f));
+      }
+    });
+    leafletLayers[cfg.id].push(lyr);
+    if(cfg.checked)lyr.addTo(map);
+  }
+}
+function setLayerVisible(id,visible){const lyrs=leafletLayers[id];if(!lyrs)return;lyrs.forEach(l=>{visible?l.addTo(map):map.removeLayer(l)});updateLegendFilter()}
+
+function enjClass(v){if(!v||v==='—')return'nc';if(matchEnjeu(v,'maj'))return'maj';if(matchEnjeu(v,'tfort'))return'tfort';if(matchEnjeu(v,'fort'))return'fort';if(matchEnjeu(v,'mod'))return'mod';if(matchEnjeu(v,'faib'))return'faib';if(matchEnjeu(v,'nul'))return'nul';return'nc'}
+
+
+function renderPhotoGallery(feature){
+  const el=document.getElementById('photo-gallery');
+  const siteNum = propNorm(feature.properties, 'Num') || propNorm(feature.properties, 'Code_Site');
+  
+  // On utilise des Map pour stocker les espèces avec leur note d'enjeu
+  const faunaMap = new Map();
+  const floraMap = new Map();
+
+  // Fonction pour donner une "note" à l'enjeu
+  function getStakeScore(val) {
+     const n = norm(val || '');
+     if (n.includes('majeur')) return 6;
+     if (n.includes('tres fort') || n.includes('très fort')) return 5;
+     if (n.includes('fort') && !n.includes('tres') && !n.includes('très')) return 4;
+     if (n.includes('modere') || n.includes('modéré')) return 3;
+     if (n.includes('faible')) return 2;
+     if (n.includes('nul') || n.includes('pas evalue') || n.includes('pas évalué')) return 1;
+     return 0; // nc
+  }
+
+  if(feature && feature.geometry) {
+    const geomType = feature.geometry.type;
+    const polys = geomType === 'Polygon' ? [feature.geometry.coordinates] : (geomType === 'MultiPolygon' ? feature.geometry.coordinates : []);
+
+    const extractPts = (ptsFeatures, nameProp, enjeuProp, targetMap) => {
+      ptsFeatures.forEach(ptF => {
+        let isInside = false;
+        
+        // Lien par attribut
+        const ptNum = propNorm(ptF.properties, 'Num') || propNorm(ptF.properties, 'Code_Site');
+        if (siteNum && ptNum && String(siteNum) === String(ptNum)) {
+          isInside = true;
+        } 
+        // Lien géographique
+        else if (ptF.geometry && ptF.geometry.type === 'Point' && polys.length > 0) {
+          const pt = ptF.geometry.coordinates;
+          for(const poly of polys) {
+            if (pointInPolygon(pt, poly[0])) { isInside = true; break; }
+          }
+        }
+
+        if (isInside) {
+          const spName = propNorm(ptF.properties, nameProp);
+          const enjeuVal = propNorm(ptF.properties, enjeuProp);
+          
+          if (spName && spName.trim() !== '') {
+            const name = spName.trim();
+            const score = getStakeScore(enjeuVal);
+            
+            // On conserve l'espèce avec la meilleure note
+            if (!targetMap.has(name) || targetMap.get(name) < score) {
+              targetMap.set(name, score);
+            }
+          }
+        }
+      });
+    };
+
+    if(geomType === 'Point') {
+       const n1 = propNorm(feature.properties, 'LB_NOM');
+       const e1 = propNorm(feature.properties, 'Enjeu te_1');
+       if(n1 && n1.trim() !== '') faunaMap.set(n1.trim(), getStakeScore(e1));
+       
+       const n2 = propNorm(feature.properties, 'taxon_id');
+       const e2 = propNorm(feature.properties, 'Enjeu terr');
+       if(n2 && n2.trim() !== '') floraMap.set(n2.trim(), getStakeScore(e2));
+    } else {
+       extractPts(getAllFeatures('Faune_sites'), 'LB_NOM', 'Enjeu te_1', faunaMap);
+       extractPts(getAllFeatures('Faune_sites_300m'), 'LB_NOM', 'Enjeu te_1', faunaMap);
+       extractPts(getAllFeatures('Flore_sites'), 'taxon_id', 'Enjeu terr', floraMap);
+       extractPts(getAllFeatures('Flore_sites_sup'), 'taxon_id', 'Enjeu terr', floraMap);
+    }
+  }
+
+  // On trie les cartes par note d'enjeu décroissante et on prend le top 3
+  const topFauna = Array.from(faunaMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3).map(e => e[0]);
+  const topFlora = Array.from(floraMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3).map(e => e[0]);
+  
+  const combinedPhotos = [...topFauna, ...topFlora];
+
+  if(combinedPhotos.length === 0){
+    el.innerHTML='<div class="gal-empty" style="padding:15px; color:var(--n5); font-weight:600;">Aucune espèce n\'est associée à ce site.</div>';
+    return;
+  }
+
+  el.innerHTML = combinedPhotos.map(sp => {
+    const cleanName = sp.replace(/\s+/g, '_'); 
+    return `
+      <div style="width: 120px; flex-shrink: 0; display:flex; flex-direction:column; align-items:center; background:var(--n0); border:1px solid var(--n2); border-radius:6px; padding:8px; box-sizing:border-box;">
+        <img class="gi" style="width:100px; height:100px; object-fit:cover; border-radius:4px; margin:0;" 
+             src="./images/${cleanName}.jpg" alt="${sp}" title="${sp}" 
+             onerror="this.onerror=null; this.src='./images/${cleanName}.JPG'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.color='#c62828'; this.nextElementSibling.innerHTML='⚠️ Image manquante<br/>${cleanName}';};" />
+        <span style="font-size:10px; color:var(--n7); margin-top:8px; text-align:center; font-weight:600; line-height:1.2; word-break:break-word; width:100%;">${sp}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+
+function renderSiteGallery(siteNum) {
+  const el = document.getElementById('site-photo-gallery');
+  
+  if (!siteNum) {
+    el.innerHTML = '<div class="gal-empty" style="padding:15px; color:var(--n5);">Aucun numéro de site disponible.</div>';
+    return;
+  }
+
+  // Formate sur 3 chiffres (ex: 6 devient 006)
+  const numStr = String(siteNum).padStart(3, '0');
+  
+  // Génère jusqu'à 3 emplacements de photos
+  let html = '';
+  for (let i = 1; i <= 3; i++) {
+    html += `
+      <div style="width: 120px; flex-shrink: 0; display:flex; flex-direction:column; align-items:center; background:var(--n0); border:1px solid var(--n2); border-radius:6px; padding:8px; box-sizing:border-box;">
+        <img class="gi" style="width:100px; height:100px; object-fit:cover; border-radius:4px; margin:0;" 
+             src="./images_sites/Site_${numStr}_${i}.jpg" alt="Vue du site ${numStr}" 
+             onerror="this.onerror=null; this.src='./images_sites/Site_${numStr}_${i}.JPG'; this.onerror=function(){this.parentElement.style.display='none';};" />
+      </div>
+    `;
+  }
+  
+  el.innerHTML = html;
+}
+
+function updateRightPanel(cfg,props,feature){
+  document.getElementById('rdesc').textContent=cfg.desc||'—';
+  const surfVal=props.Surf_ha||props.Surface||props.SURF||props.SURF_SIG||props.Surf_m2;
+  document.getElementById('rsurf').textContent=surfVal?surfVal+' ha':'—';
+  document.getElementById('rtype').textContent=props.Type||props.MILMAJ_REG||props.CLASSE||cfg.name;
+  document.getElementById('rcode').textContent=props.Code_Site||props.Num||props.NOM_SITE||props.LB_NOM||'—';
+  let communeName='—';
+  if(feature&&cfg.id&&cfg.id.startsWith('Sites_reperes_enjeux_max')){
+    const communesFeatures=getAllFeatures('Communes_2028-2044').length?getAllFeatures('Communes_2028-2044'):getAllFeatures('Communes_2013-2028');
+    if(communesFeatures.length){
+      const cf=findCommuneForSite(feature,communesFeatures);
+      if(cf)communeName=propNorm(cf.properties,'nom')||'—';
+    }
+  }else{
+    communeName=props.nom||props.NOM||props.NOM_DEPT||'—';
+  }
+  document.getElementById('rcom').textContent=communeName;
+  const siteNum=props.Num||props.Code_Site;
+  let enjFaune=propNorm(props,'Faune_Site')||propNorm(props,'Enj_Ter_Co')||props['Enjeu te_1'];
+  let enjFauneTamp=propNorm(props,'Faune_Tamp');
+  let enjFlore=propNorm(props,'Flore_Site')||propNorm(props,'Flore_max')||props['Enj_Flore'];
+  let enjFlorePote=propNorm(props,'Flore_Pote');
+  if(siteNum&&(!enjFaune||!enjFlore||!enjFauneTamp||!enjFlorePote)){
+    const sitesFeatures=getAllFeatures('Sites_reperes_enjeux_max');
+    const match=sitesFeatures.find(f=>f.properties.Num==siteNum||f.properties.Code_Site==siteNum);
+    if(match){
+      enjFaune=enjFaune||propNorm(match.properties,'Faune_Site')||match.properties['Enj_Ter_Co']||match.properties['Enjeu te_1'];
+      enjFauneTamp=enjFauneTamp||propNorm(match.properties,'Faune_Tamp');
+      enjFlore=enjFlore||propNorm(match.properties,'Flore_Site')||match.properties['Flore_max']||match.properties['Enj_Flore'];
+      enjFlorePote=enjFlorePote||propNorm(match.properties,'Flore_Pote');
+    }
+  }
+  enjFaune=enjFaune||'—';enjFauneTamp=enjFauneTamp||'—';enjFlore=enjFlore||'—';enjFlorePote=enjFlorePote||'—';
+  const eF=document.getElementById('renj-faune');eF.textContent=enjFaune;eF.className='eb '+enjClass(enjFaune);
+  const eFT=document.getElementById('renj-faune-tamp');eFT.textContent=enjFauneTamp;eFT.className='eb '+enjClass(enjFauneTamp);
+  const eFl=document.getElementById('renj-flore');eFl.textContent=enjFlore;eFl.className='eb '+enjClass(enjFlore);
+  const eFlP=document.getElementById('renj-flore-pote');eFlP.textContent=enjFlorePote;eFlP.className='eb '+enjClass(enjFlorePote);
+  let fonInfo=props.Foncier||props['FLPPM_5924']||'';
+  if(!fonInfo){
+    const siteNum2=props.Num||props.Code_Site;
+    if(siteNum2){
+      const pars=getAllFeatures('Parcelles_sites').filter(f=>String(propNorm(f.properties,'Num'))==String(siteNum2));
+      if(pars.length>0){
+        const cats=[...new Set(pars.map(f=>propNorm(f.properties,'FLPPM_5924')).filter(Boolean))];
+        fonInfo=cats.join(', ');
+      }
+    }
+  }
+  document.getElementById('rfon').textContent=fonInfo||'—';
+
+  const btnFiche = document.getElementById('btn-fiche-site');
+  if(siteNum){
+    btnFiche.href = `./Fiche/Fiche_site_${String(siteNum).padStart(3, '0')}.pdf`;
+    btnFiche.style.display = 'block';
+  } else {
+    btnFiche.style.display = 'none';
+  }
+
+  // APPEL DES DEUX GALERIES
+  renderPhotoGallery(feature);
+  renderSiteGallery(siteNum);
+}
+
+function buildTree(){
+  const tree=document.getElementById('tree');
+  const struct={};
+  LAYERS.forEach(l=>{let node=struct;l.tab.forEach((t,i)=>{if(!node[t])node[t]={__layers:[],__subs:{}};if(i<l.tab.length-1)node=node[t].__subs;else node[t].__layers.push(l)})});
+  function renderNode(name,data,container,level){
+    const div=document.createElement('div');div.className='lg';
+    const hdr=document.createElement('div');hdr.className='gh';hdr.style.paddingLeft=(10+level*12)+'px';
+    hdr.innerHTML=`<span class="ar">▶</span><span>${name}</span>`;
+    hdr.onclick=()=>toggleGrp(hdr);div.appendChild(hdr);
+    const body=document.createElement('div');body.className='gb';div.appendChild(body);
+    Object.keys(data.__subs).forEach(sn=>renderNode(sn,data.__subs[sn],body,level+1));
+    data.__layers.filter(cfg=>!cfg.hideCheckbox).forEach(cfg=>{
+      const item=document.createElement('div');item.className='li2';item.style.paddingLeft=(24+level*12)+'px';
+      let swColor=cfg.color||(cfg.colorMap?Object.values(cfg.colorMap)[0]:'#aaa');
+      if(cfg.colorBy==='CLASSE')swColor='#e53935';
+      if(cfg.blueGradientMode)swColor='#1976d2';
+      const hatch=cfg.style==='poly-hatch'?`background-image:repeating-linear-gradient(45deg,${swColor} 0,${swColor} 2px,transparent 2px,transparent 5px);`:'';      
+      let swStyle=`background:${swColor};${hatch}${cfg.style==='line'||cfg.style==='poly-outline'?'height:3px;':''}`;
+      if(cfg.style==='poly-grad'&&cfg.gradColors){
+        swStyle=`background:linear-gradient(to right,${cfg.gradColors.join(',')});`;
+      }
+      item.innerHTML=`<input type="checkbox" ${cfg.checked?'checked':''} onclick="toggleLayer('${cfg.id}',this.checked)"/><span class="sw" style="${swStyle}"></span><span style="flex:1;line-height:1.3">${cfg.name}</span><button class="ib" onclick="showInfo('${cfg.id}')" title="Informations">ℹ</button>`;
+      body.appendChild(item);
+    });
+    container.appendChild(div);
+  }
+  Object.keys(struct).forEach(n=>renderNode(n,struct[n],tree,0));
+}
+function toggleGrp(hdr){const body=hdr.nextElementSibling;const ar=hdr.querySelector('.ar');const op=body.classList.toggle('op');ar.classList.toggle('op',op)}
+function toggleLayer(id,visible){if(!leafletLayers[id]){if(visible)loadLayer(LAYERS.find(l=>l.id===id))}else setLayerVisible(id,visible)}
+
+const LEGEND_GROUPS=[
+ {title:'Sites repérés — Types de milieux',cat:'milieu',items:[
+  {c:'#f0c040',l:'Coteaux calcaires',key:'Coteaux calcaires'},
+  {c:'#5bc8d9',l:'Milieux littoraux',key:'Milieux littoraux'},
+  {c:'#8c6239',l:'Landes',key:'Landes'},
+  {c:'#6abf69',l:'Prairies marnicoles',key:'Prairies marnicoles'}]},
+ {title:'Enjeux faune / flore',cat:'enjeu',items:[
+  {c:'#770015',l:'Majeur'},{c:'#b10002',l:'Très fort'},{c:'#ff0d00',l:'Fort'},
+  {c:'#ffac00',l:'Modéré'},{c:'#52e11b',l:'Faible (faune)'},
+  {c:'#1b5e20',l:'Faible (flore)'},{c:'#a5d6a7',l:'Flore potentielle'},
+  {c:'#8af193',l:'Nul / Non évalué'},{c:'#e0e0e0',l:'N/C'}]},
+ {title:'Zonages naturels (réglementaires)',cat:'z reglementaires',items:[
+  {c:'#ffd600',l:'APPB'},{c:'#9e9e9e',l:'ENS (59)'},{c:'#ce93d8',l:'ENS (62)'},
+  {c:'#388e3c',l:'Forêts publiques'},{c:'#a5d6a7',l:'Réserves biologiques'},
+  {c:'#1b5e20',l:'RNN'},{c:'#4caf50',l:'RNR'},{c:'#b39ddb',l:'Sites CELRL'},{c:'#ffb74d',l:'Sites CEN'}]},
+ {title:'TVB',cat:'tvb',items:[
+  {c:'#795548',l:'Corridors écologiques',ln:1},{c:'#29b6f6',l:'Cours d\'eau',ln:1}]},
+ {title:'Zonages naturels (inventaires)',cat:'z inventaires',items:[
+  {c:'#f06292',l:'ZNIEFF I',h:1},{c:'#ffb300',l:'ZNIEFF II',h:1},{c:'#f44336',l:'INPG',h:1},{c:'#b71c1c',l:'ZICO'}]},
+ {title:'Zonages naturels (contractuels / classés)',cat:'z contractuels',items:[
+  {c:'#558b2f',l:'ZPS'},{c:'#f9a825',l:'ZSC'},{c:'#ef9a9a',l:'Grands sites de France'},
+  {c:'#1976d2',l:'RAMSAR'},{c:'#b71c1c',l:'Sites géo-patrimoniaux'},
+  {c:'#8bc34a',l:'Sites d\'intervention PNR'}]},
+ {title:'Réserves de biosphère',cat:'biosphere',items:[
+  {c:'#bbdefb',l:'Site (clair)'},
+  {c:'#42a5f5',l:'Site (moyen)'},
+  {c:'#0d47a1',l:'Site (foncé)'}],
+  dynamicBiosphere:true},
+ {title:'Géologie',cat:'geologie',items:[
+  {c:'#e0e0e0',l:'Formation géologique (teinte variable)'}]},
+ {title:'Niveau de pertinence géologique',cat:'geoniv',items:[
+  {c:'#f0ffb5',l:'Faible'},{c:'#f4bb73',l:'Moyen'},{c:'#e53935',l:'Fort'}]},
+ {title:'Inventaires faune / flore',cat:'inventaires',items:[
+  {c:'#e53935',l:'Faune (points)',pt:1},{c:'#1b5e20',l:'Flore (vert foncé)'},
+  {c:'#4caf50',l:'Flore potentielle (vert clair)'},{c:'#f48fb1',l:'PAPECH'}]},
+ {title:'Périmètres & administratif',cat:'perimetres',items:[
+  {c:'#388e3c',l:'PNR CMO (2013-2028)',ln:1},{c:'#c62828',l:'PNR CMO (2028-2044)',ln:1},
+  {c:'#388e3c',l:'Communes (2013-2028)',ln:1},{c:'#888',l:'Communes (2028-2044)',ln:1},
+  {c:'#ffd600',l:'Départements',ln:1},{c:'#212121',l:'Parcelles cadastrales',ln:1},{c:'#f44336',l:'Sections cadastrales',ln:1}]},
+ {title:'Maillage & analyses',cat:'maillage',items:[
+  {c:'#222',l:'Maille 5×5 km',ln:1},{c:'#388e3c',l:'Présence site'},
+  {c:'#ffffff',l:'Absence site',border:1},{c:'#b71c1c',l:'Densité élevée'}],
+  dynamicDensity:true},
+ {title:'Topographie',cat:'topo',items:[
+  {c:'#c4956a',l:'Courbes de niveaux',ln:1}]},
+];
+function buildLegend(){
+  const lb=document.getElementById('lb');
+  lb.innerHTML=LEGEND_GROUPS.map(g=>{
+    let items=g.items;
+    if(g.dynamicBiosphere){
+      const biosphereFeatures=getAllFeatures('Rbios');
+      const siteNames=[...new Set(biosphereFeatures.map(f=>propNorm(f.properties,'NOM_SITE')).filter(Boolean))];
+      if(siteNames.length>0){
+        items=siteNames.map((name,i)=>{
+          const c=resolveBlueGradient(name);
+          return {c:c,l:name,key:name};
+        });
+      }
+    }
+    if(g.dynamicDensity){
+      const densityFeatures=getAllFeatures('Densite_site_maille');
+      if(densityFeatures.length>0){
+        const gradColors=['#ffffff','#c8e6c9','#ffd54f','#ff8f00','#e53935','#b71c1c'];
+        items=[
+          {c:gradColors[0],l:'0 site',key:'0'},
+          {c:gradColors[1],l:'1 site',key:'1'},
+          {c:gradColors[2],l:'2-3 sites',key:'2-3'},
+          {c:gradColors[3],l:'4-5 sites',key:'4-5'},
+          {c:gradColors[4],l:'6+ sites',key:'6+'}
+        ];
+      }
+    }
+    return `<div class="lg-h">${g.title}</div>`+
+    items.map(i=>{
+      const sw=`<span class="ls" style="background:${i.c};${i.h?`background-image:repeating-linear-gradient(45deg,${i.c} 0,${i.c} 2px,transparent 2px,transparent 5px);`:''}${i.ln?'height:3px;':''}${i.pt?'border-radius:50%;width:10px;height:10px;':''}${i.border?'border:1px solid #aaa;':''}"></span>`;
+      return `<div class="lgi" data-cat="${g.cat||''}" data-key="${i.key||i.l}">${sw}<span>${i.l}</span></div>`;
+    }).join('')
+  }).join('');
+}
+function updateLegendFilter(){
+  document.querySelectorAll('.lgi').forEach(el=>el.classList.remove('active'));
+}
+function toggleLegend(){const b=document.getElementById('lb');const v=b.style.display!=='none';b.style.display=v?'none':'block';document.getElementById('la').textContent=v?'▸':'▾'}
+
+function renderDataTab(filter){
+  filter=(filter||'').toLowerCase();
+  const groups={
+    'Fonds de carte':RASTERS.map(r=>({name:r.name,desc:r.id==='none'?'Aucun fond de carte affiché.':`Fond de carte : ${r.attr}.`,proc:'Chargé via Leaflet (WMTS/WMS/XYZ).'})),
+    'Couches thématiques':LAYERS.map(l=>({name:l.name,desc:l.desc,proc:'Couche vectorielle GeoJSON chargée à la volée.',cfg:l}))
+  };
+  let html='';
+  for(const [gname,items] of Object.entries(groups)){
+    const filtered=items.filter(it=>!filter||it.name.toLowerCase().includes(filter)||(it.desc||'').toLowerCase().includes(filter));
+    if(!filtered.length)continue;
+    html+=`<div class="data-section"><div class="data-h">${gname}</div>`;
+    filtered.forEach(it=>{
+      let swStyle='background:#aaa;';
+      if(it.cfg){const c=it.cfg.color||(it.cfg.colorMap?Object.values(it.cfg.colorMap)[0]:'#aaa');swStyle=`background:${c};${it.cfg.style==='line'||it.cfg.style==='poly-outline'?'height:3px;':''}`}
+      html+=`<div class="data-card"><div class="dcn"><span class="sw" style="${swStyle}"></span>${it.name}</div><div class="dcd">${it.desc}</div><div class="dct"><b>Traitement :</b> ${it.proc}</div></div>`;
+    });
+    html+='</div>';
+  }
+  document.getElementById('data-content').innerHTML=html||'<p class="dt">Aucune donnée ne correspond au filtre.</p>';
+}
+
+function showInfo(id){
+  const cfg=LAYERS.find(l=>l.id===id);if(!cfg)return;
+  document.getElementById('mtt').textContent=cfg.name;
+  document.getElementById('mts').textContent=cfg.tab.join(' › ');
+  let html=`<h3>Description</h3><p>${cfg.desc}</p>`;
+  if(cfg.fields?.length){html+=`<h3>Champs attributaires</h3><table><thead><tr><th>Champ</th><th>Signification</th></tr></thead><tbody>${cfg.fields.map(f=>`<tr><td><code>${f.f}</code></td><td>${f.s}</td></tr>`).join('')}</tbody></table>`}
+  if(cfg.colorMap){html+=`<h3>Symbologie</h3><div class="swatch-grid">${Object.entries(cfg.colorMap).map(([k,v])=>`<div><span style="background:${v}"></span>${k}</div>`).join('')}</div>`}
+  if(cfg.blueGradientMode){
+    const biosphereFeatures=getAllFeatures('Rbios');
+    const siteNames=[...new Set(biosphereFeatures.map(f=>propNorm(f.properties,'NOM_SITE')).filter(Boolean))];
+    if(siteNames.length>0){
+      html+=`<h3>Symbologie — sites</h3><div class="swatch-grid">${siteNames.map(name=>{const c=resolveBlueGradient(name);return `<div><span style="background:${c}"></span>${name}</div>`}).join('')}</div>`;
+    }else{
+      html+=`<h3>Symbologie</h3><div class="swatch-grid"><div style="width:100%"><span style="background:linear-gradient(to right, #bbdefb, #0d47a1);width:40px"></span>Polygone plein, couleur (bleu clair à foncé) selon le nom du site</div></div>`;
+    }
+  }
+  if(cfg.gradColors){html+=`<h3>Symbologie graduée</h3><div class="swatch-grid">${cfg.gradColors.map((c,i)=>`<div><span style="background:${c}"></span>${i===0?'Min':i===cfg.gradColors.length-1?'Max':''}</div>`).join('')}</div>`}
+  document.getElementById('mc2').innerHTML=html;
+  document.getElementById('mo').classList.add('op');
+}
+function closeMO(e){if(e.target===document.getElementById('mo'))closeMOD()}
+function closeMOD(){document.getElementById('mo').classList.remove('op')}
+
+let panelOpen=true;
+function togglePanel(){panelOpen=!panelOpen;const lp=document.getElementById('lp');lp.classList.toggle('coll',!panelOpen);document.getElementById('pt').style.display=panelOpen?'':'none';document.getElementById('ptb').textContent=panelOpen?'◀':'▶';document.getElementById('tree').style.display=panelOpen?'':'none';document.getElementById('leg-sec').style.display=panelOpen?'':'none'}
+
+function swTab(i,btn){
+  document.querySelectorAll('.rtb').forEach((t,j)=>t.classList.toggle('on',j===i));
+  document.querySelectorAll('.tc').forEach((c,j)=>c.classList.toggle('on',j===i));
+  if(i===2)renderDataTab(document.getElementById('data-search')?.value||'');
+}
+
+document.querySelectorAll('#nav .nb').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#nav .nb').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  const v=b.dataset.view;
+  if(v==='dashboard')swTab(1,document.querySelectorAll('.rtb')[1]);
+  else if(v==='data')swTab(2,document.querySelectorAll('.rtb')[2]);
+  else swTab(0,document.querySelectorAll('.rtb')[0]);
+}));
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const ds=document.getElementById('data-search');
+  if(ds)ds.addEventListener('input',()=>renderDataTab(ds.value));
+});
+
+(async()=>{
+  buildBM();
+  document.getElementById('loading').style.display='block';
+  const checked=LAYERS.filter(l=>l.checked);
+  await Promise.all(checked.map(l=>loadLayer(l)));
+  await loadAllForStats();
+  document.getElementById('loading').style.display='none';
+  buildTree();
+  buildLegend();
+  renderDashboard();
+  buildCommunesIndex();
+  initSearch();
+  document.querySelectorAll('#tree .gh').forEach(h=>{if(h.nextElementSibling.querySelector('.li2 input[checked]')||h.nextElementSibling.querySelector('.gh'))toggleGrp(h)});
+})();
+</script>
+</body>
+</html>
